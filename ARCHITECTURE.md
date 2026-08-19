@@ -95,9 +95,11 @@ Everything number-formatting- or DOM-related lives in `app/main.ts` only:
 None of it computes a physical quantity. `drawGraph()`'s ideal-solution
 dashed curve, for example, does not compute `x(1−x)` itself — it plots
 `scc0Ideal` values that `qcAdapter.computeIdealCurve()` already got from
-the engine (see engine/README.md's note on why: there's no standalone
-Ideal Solution model yet, so it's read off the Quasi-Chemical model's
-bundled ideal-baseline output).
+the engine, read off the Quasi-Chemical model's bundled ideal-baseline
+output. As of Phase 2A a standalone Ideal Solution model also exists
+(`engine/models/thermodynamics/ideal/`) — the UI simply hasn't been wired
+to call it yet, since Phase 2A's brief was engine correctness, not UI
+changes (see "What Phase 2A intentionally did not change" below).
 
 ## Why scientific calculations don't belong in the UI
 
@@ -135,3 +137,20 @@ bundled ideal-baseline output).
   the pipeline.
 - No new scientific model, alloy system, or property domain was added —
   see `engine/README.md` for what remains Phase 2+ scope.
+
+## What Phase 2A intentionally did not change
+
+Phase 2A (Ideal Solution, Regular Solution, model comparison, composition
+sweep, parameter architecture — see `engine/README.md`) is an engine-only
+phase. Nothing in `app/` or `index.html` changed:
+
+- `app/qcAdapter.ts` and `app/main.ts` still call only the Quasi-Chemical
+  model, exactly as Phase 1b left them. The new Ideal/Regular Solution
+  models, `compareModels()`, and `runCompositionSweep()` are all reachable
+  through `engine/index.ts` but nothing in the UI imports them yet.
+- The rendered page is byte-for-byte the same as after Phase 1b — same
+  inputs, same table, same chart, same golden numbers.
+
+Wiring a model picker, a comparison view, or a sweep-driven chart into the
+UI is future work, deliberately out of scope here so this phase could
+focus on getting the underlying science and its architecture right first.

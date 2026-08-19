@@ -1,5 +1,6 @@
 import type { Conditions } from "./Conditions.js";
 import type { Material } from "./Material.js";
+import type { ParameterSource } from "./ParameterSource.js";
 import type { PropertyDefinition, PropertyDomain } from "./Property.js";
 import type { ModelReference } from "./Reference.js";
 import type { PhysicalQuantity, UnitSymbol } from "./Units.js";
@@ -21,6 +22,15 @@ export interface CalculationRequest {
    * system without changing this field's shape.
    */
   parameters?: Record<string, number>;
+  /**
+   * Where each entry in `parameters` came from, keyed the same way. Purely
+   * additive/optional (Phase 2A) — omit entirely and every parameter is
+   * assumed user-supplied, which is what every caller before this phase
+   * already implicitly meant. A future parameter-database lookup (see
+   * engine/parameters/) can populate this with "literature"/"database"
+   * sources without changing this field's shape.
+   */
+  parameterSources?: Record<string, ParameterSource>;
   /** Restrict which output property ids are returned; omit for all outputs the model defines. */
   requestedOutputs?: string[];
 }
@@ -55,6 +65,15 @@ export interface CalculationResult {
     conditions: Conditions;
     parametersUsed: Record<string, number>;
   };
+
+  /**
+   * Source of each entry in `parametersUsed`, keyed the same way. Always
+   * present — any parameter without an explicit `CalculationRequest.
+   * parameterSources` entry defaults to `{ kind: "user_supplied" }`, which
+   * is accurate for every caller today (nothing yet resolves parameters
+   * from a database on the caller's behalf).
+   */
+  parameterProvenance: Record<string, ParameterSource>;
 
   warnings: string[];
   validation: ValidationResult;

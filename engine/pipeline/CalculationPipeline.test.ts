@@ -26,6 +26,10 @@ describe("runCalculation — end to end via the pipeline", () => {
     expect((result.values.Scc0Ideal as { value: number }).value).toBeCloseTo(0.25, 5);
     expect(result.units.Scc0).toBe("dimensionless");
     expect(result.inputSummary.parametersUsed).toEqual(parameters);
+    expect(result.parameterProvenance).toEqual({
+      Z: { kind: "user_supplied" },
+      W: { kind: "user_supplied" },
+    });
     expect(result.validation.valid).toBe(true);
     expect(result.warnings).toEqual([]);
     expect(result.metadata.engineVersion).toBeTruthy();
@@ -94,5 +98,24 @@ describe("runCalculation — end to end via the pipeline", () => {
       expect(isEngineError(error)).toBe(true);
       if (isEngineError(error)) expect(error.code).toBe("MODEL_VALIDATION_ERROR");
     }
+  });
+
+  it("records an explicit parameterSources override instead of defaulting to user_supplied", () => {
+    const result = runCalculation({
+      material,
+      modelId: QUASI_CHEMICAL_SCC0_MODEL_ID,
+      conditions,
+      parameters,
+      parameterSources: {
+        W: { kind: "literature", citation: "example citation for this test only" },
+      },
+    });
+
+    expect(result.parameterProvenance.W).toEqual({
+      kind: "literature",
+      citation: "example citation for this test only",
+    });
+    // Z had no explicit source, so it still defaults.
+    expect(result.parameterProvenance.Z).toEqual({ kind: "user_supplied" });
   });
 });

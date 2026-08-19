@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "./Element.js";
-import { binaryComposition, classifySystem, pureElement, validateComposition } from "./Material.js";
+import { binaryComposition, classifySystem, pureElement, systemLabel, validateComposition } from "./Material.js";
 
 const Au = createElement("Au", "Gold", 79);
 const Cu = createElement("Cu", "Copper", 29);
@@ -80,5 +80,16 @@ describe("classifySystem", () => {
         ],
       }),
     ).toBe("multicomponent");
+  });
+});
+
+describe("systemLabel", () => {
+  it("joins element symbols in component order", () => {
+    expect(systemLabel(binaryComposition(Au, 0.5, Cu, 0.5))).toBe("Au-Cu");
+    expect(systemLabel(binaryComposition(Cu, 0.5, Au, 0.5))).toBe("Cu-Au");
+  });
+
+  it("works for a pure element", () => {
+    expect(systemLabel(pureElement(Au))).toBe("Au");
   });
 });

@@ -49,7 +49,18 @@ export { runCalculation } from "./pipeline/CalculationPipeline.js";
 
 // Known model ids, exported so a UI can build a CalculationRequest without
 // importing a specific model's module — only the barrel and a string id.
+export { IDEAL_SOLUTION_SCC0_MODEL_ID } from "./models/thermodynamics/ideal/index.js";
+export { REGULAR_SOLUTION_SCC0_MODEL_ID } from "./models/thermodynamics/regular/index.js";
 export { QUASI_CHEMICAL_SCC0_MODEL_ID } from "./models/thermodynamics/quasi-chemical/index.js";
+
+export type { ModelComparisonEntry, ModelComparisonRequest, ModelComparisonResult } from "./comparison/ModelComparison.js";
+export { compareModels } from "./comparison/ModelComparison.js";
+
+export type { CompositionSweepPoint, CompositionSweepRequest, CompositionSweepResult } from "./pipeline/CompositionSweep.js";
+export { runCompositionSweep } from "./pipeline/CompositionSweep.js";
+
+export type { ParameterSet, ParameterSource, ParameterSourceKind, ParameterValue } from "./parameters/types.js";
+export { findParameterSet, registerParameterSet, toParameterRecord, clearParameterStore } from "./parameters/parameterStore.js";
 
 export { ENGINE_VERSION } from "./version.js";
 

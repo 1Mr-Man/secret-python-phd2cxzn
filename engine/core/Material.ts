@@ -44,6 +44,17 @@ export interface Material {
   phase?: string;
 }
 
+/**
+ * A human-readable system label in component order, e.g. "Au-Cu" for a
+ * binary Au/Cu composition. Used as the lookup key for parameter sets
+ * (engine/parameters/) — not alphabetized, since "Au-Cu" and "Cu-Au" are
+ * conventionally distinct orderings in the alloy literature (first element
+ * matches the x in Scc(0) sweeps).
+ */
+export function systemLabel(composition: Composition): string {
+  return composition.components.map((component) => component.element.symbol).join("-");
+}
+
 /** Convenience constructor for an n-component mole-fraction composition. */
 export function composition(components: Component[]): Composition {
   return { basis: "mole_fraction", components };

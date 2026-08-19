@@ -46,6 +46,14 @@ export function computeScc0QuasiChemical(
   return { etaSquared, beta, scc0, scc0Ideal };
 }
 
+// Phase 2A note: the missing-condition/parameter issue codes below were
+// retrofitted from MODEL_VALIDATION_ERROR to INVALID_CONDITION/
+// INVALID_PARAMETER for consistency with the Ideal/Regular Solution models
+// (see engine/core/Errors.ts's validation-category taxonomy). This is a
+// categorization-only change — no equation, numeric result, or golden
+// value is affected. The composition-shape check below (binary-only)
+// stays MODEL_VALIDATION_ERROR: it is a constraint specific to this
+// model's scope, not a parameter or condition problem.
 function validate(context: ModelValidationContext): ValidationResult {
   const { material, conditions, parameters } = context;
   const issues: ValidationResult["issues"] = [];
@@ -61,7 +69,7 @@ function validate(context: ModelValidationContext): ValidationResult {
 
   if (conditions.temperatureK === undefined) {
     issues.push({
-      code: "MODEL_VALIDATION_ERROR",
+      code: "INVALID_CONDITION",
       severity: "error",
       message: "Quasi-Chemical Scc(0) requires conditions.temperatureK.",
       path: "conditions.temperatureK",
@@ -71,14 +79,14 @@ function validate(context: ModelValidationContext): ValidationResult {
   const Z = parameters.Z;
   if (Z === undefined || !Number.isFinite(Z)) {
     issues.push({
-      code: "MODEL_VALIDATION_ERROR",
+      code: "INVALID_PARAMETER",
       severity: "error",
       message: "Quasi-Chemical Scc(0) requires a finite parameter Z (coordination number).",
       path: "parameters.Z",
     });
   } else if (Z <= 0) {
     issues.push({
-      code: "MODEL_VALIDATION_ERROR",
+      code: "INVALID_PARAMETER",
       severity: "error",
       message: `Coordination number Z must be greater than 0, got ${Z}.`,
       path: "parameters.Z",
@@ -88,7 +96,7 @@ function validate(context: ModelValidationContext): ValidationResult {
   const W = parameters.W;
   if (W === undefined || !Number.isFinite(W)) {
     issues.push({
-      code: "MODEL_VALIDATION_ERROR",
+      code: "INVALID_PARAMETER",
       severity: "error",
       message: "Quasi-Chemical Scc(0) requires a finite parameter W (interchange energy, J/mol).",
       path: "parameters.W",

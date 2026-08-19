@@ -3,6 +3,7 @@ import type { Conditions } from "../core/Conditions.js";
 import { validateConditions } from "../core/Conditions.js";
 import { EngineError, isEngineError } from "../core/Errors.js";
 import { validateComposition } from "../core/Material.js";
+import type { ParameterSource } from "../core/ParameterSource.js";
 import type { UnitSymbol } from "../core/Units.js";
 import {
   combineValidation,
@@ -97,6 +98,14 @@ export function runCalculation(request: CalculationRequest): CalculationResult {
     ...warningIssues(finalValidation).map((issue) => issue.message),
   ];
 
+  const parametersUsed = request.parameters ?? {};
+  const parameterProvenance: Record<string, ParameterSource> = Object.fromEntries(
+    Object.keys(parametersUsed).map((key) => [
+      key,
+      request.parameterSources?.[key] ?? { kind: "user_supplied" },
+    ]),
+  );
+
   // 7. CalculationResult
   return {
     modelId: model.id,
@@ -108,8 +117,9 @@ export function runCalculation(request: CalculationRequest): CalculationResult {
     inputSummary: {
       material: request.material,
       conditions: request.conditions,
-      parametersUsed: request.parameters ?? {},
+      parametersUsed,
     },
+    parameterProvenance,
     warnings,
     validation: finalValidation,
     intermediateValues: output.intermediateValues,
