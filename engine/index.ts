@@ -59,8 +59,24 @@ export { compareModels } from "./comparison/ModelComparison.js";
 export type { CompositionSweepPoint, CompositionSweepRequest, CompositionSweepResult } from "./pipeline/CompositionSweep.js";
 export { runCompositionSweep } from "./pipeline/CompositionSweep.js";
 
-export type { ParameterSet, ParameterSource, ParameterSourceKind, ParameterValue } from "./parameters/types.js";
-export { findParameterSet, registerParameterSet, toParameterRecord, clearParameterStore } from "./parameters/parameterStore.js";
+export type { ParameterSet, ParameterSource, ParameterSourceKind, ParameterStatus, ParameterValue } from "./parameters/types.js";
+export {
+  clearParameterStore,
+  findAllParameterSets,
+  findParameterSet,
+  registerParameterSet,
+  toParameterRecord,
+} from "./parameters/parameterStore.js";
+
+export type { ParameterResolutionQuery, ParameterResolutionResult, ParameterResolutionStatus } from "./parameters/resolve.js";
+export { resolveParameterSet } from "./parameters/resolve.js";
+
+export type { SystemIdentity } from "./core/SystemIdentity.js";
+export { canonicalizeSystemLabel, identifySystem } from "./core/SystemIdentity.js";
+
+export { systemLabel } from "./core/Material.js";
+
+export { resolveRegularSolutionParameters } from "./models/thermodynamics/regular/index.js";
 
 export { ENGINE_VERSION } from "./version.js";
 

@@ -154,3 +154,26 @@ phase. Nothing in `app/` or `index.html` changed:
 Wiring a model picker, a comparison view, or a sweep-driven chart into the
 UI is future work, deliberately out of scope here so this phase could
 focus on getting the underlying science and its architecture right first.
+
+## What Phase 2B intentionally did not change
+
+Phase 2B (parameter database architecture: system identity, a multi-set
+store, a resolver — see `engine/README.md`) is also engine-only, and even
+narrower within the engine than Phase 2A:
+
+- `app/` and `index.html` are byte-for-byte unchanged again.
+- `engine/pipeline/CalculationPipeline.ts` is unchanged. Parameter
+  resolution is a separate, opt-in step (`resolveParameterSet()` /
+  `resolveRegularSolutionParameters()`) a caller runs *before* building a
+  `CalculationRequest` — the pipeline itself still just takes whatever
+  `request.parameters` it's given, exactly as in Phase 1a. This was a
+  deliberate choice to keep every one of the 118 pre-existing tests (and
+  the pipeline's already-settled behavior) at zero risk while the
+  parameter architecture matured.
+- `engine/models/thermodynamics/regular/model.ts`'s `calculate()` and
+  `validate()` are unchanged — the new `parameters.ts` in that same folder
+  is an addition alongside them, not a modification to them.
+- No real parameter values were added anywhere. Resolving the real Au-Cu
+  system today still returns `NOT_FOUND` — that's the correct, tested
+  behavior, not a gap to paper over before it's backed by a citable
+  source.
