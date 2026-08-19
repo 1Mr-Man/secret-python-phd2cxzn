@@ -47,6 +47,10 @@ export { registerBuiltInModels } from "./models/index.js";
 
 export { runCalculation } from "./pipeline/CalculationPipeline.js";
 
+// Known model ids, exported so a UI can build a CalculationRequest without
+// importing a specific model's module — only the barrel and a string id.
+export { QUASI_CHEMICAL_SCC0_MODEL_ID } from "./models/thermodynamics/quasi-chemical/index.js";
+
 export { ENGINE_VERSION } from "./version.js";
 
 export * as elements from "./data/elements.js";

@@ -1,17 +1,18 @@
 {
   "name": "secret-python-phd2cxzn",
   "version": "1.0.0",
-  "main": "script.js",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "dev": "vite"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.app.json",
+    "dev": "vite",
+    "build": "vite build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
+    "jsdom": "^25.0.0",
     "typescript": "^5.7.0",
     "vite": "^8.2.1",
     "vitest": "^3.0.0"

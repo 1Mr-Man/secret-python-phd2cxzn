@@ -1,11 +1,12 @@
 # Materials Engine
 
 A framework-agnostic TypeScript calculation engine for metals-and-alloys
-physics. This is Phase 1a: the core architecture plus one migrated model
-(the Au–Cu Quasi-Chemical Scc(0) calculation). No UI, charts, database, or
-authentication live here — see the repository root's `index.html` /
-`script.js` for the existing standalone page, which is untouched by this
-work and still runs on its own.
+physics. Phase 1a built the core architecture plus one migrated model (the
+Au–Cu Quasi-Chemical Scc(0) calculation). Phase 1b connected it to the
+existing calculator page — see `../ARCHITECTURE.md` for how `app/` calls
+into this engine and why the boundary is drawn there. No UI, charts,
+database, or authentication live in `engine/` itself: this directory has
+zero dependency on the DOM, React, or any browser API, by design.
 
 ## Why this exists
 
@@ -49,14 +50,18 @@ engine/
   data/
     elements.ts          Minimal seed data (Au, Cu identity only)
 
-  index.ts              Public API barrel — the only import path for a future UI
+  index.ts              Public API barrel — the only import path for app/
   version.ts            ENGINE_VERSION
+
+app/                   UI — see ../ARCHITECTURE.md
+  qcAdapter.ts             Translates DOM inputs <-> CalculationRequest/Result; the only file here that imports engine/
+  main.ts                   DOM rendering (table, canvas chart) — no equations, no engine imports
 ```
 
 Data flows one direction: `models/*` depends on `core/*`; `pipeline/*`
 depends on `core/*` and `models/registry.ts` (never on a specific model);
 `index.ts` re-exports the public surface. Nothing in `core/` imports from
-`models/` or `pipeline/`.
+`models/` or `pipeline/`, and nothing in `engine/` imports from `app/`.
 
 ## The calculation pipeline
 
@@ -121,9 +126,10 @@ Two differences from the original, both structural rather than
 mathematical:
 
 - The function takes one composition point `x` per call instead of
-  sweeping an array. A composition sweep (what produces the original
-  page's table/chart) is a caller-level concern — call `runCalculation`
-  once per `x` — and is deliberately not built into the engine in Phase 1a.
+  sweeping an array. A composition sweep (what produces the page's
+  table/chart) is a caller-level concern — call `runCalculation` once per
+  `x` — and is deliberately not built into the engine. Phase 1b's
+  `app/qcAdapter.ts` (`runQcSweep`) is exactly that caller.
 - `x` is read from `material.composition.components[0].fraction`; the
   model's `validate()` requires exactly two components, matching the
   original's binary-only scope.
