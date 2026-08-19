@@ -427,11 +427,12 @@ fresh each time from whatever happens to be registered.
 - **`parameters/parameterStore.ts`** — `Map<string, ParameterSet[]>`
   keyed by `(modelId, canonicalizeSystemLabel(system))`; registering
   under `"Cu-Au"` and looking up `"Au-Cu"` finds the same entries.
-  `registerParameterSet` **appends** and rejects a duplicate `setId`
-  within the same key; `findParameterSet` keeps its original
-  single-result signature for backward compatibility; `findAllParameterSets`
-  exposes the full list. `toParameterRecord` skips any parameter with no
-  value.
+  `registerParameterSet` **validates first** (Phase 2D.1 —
+  `validateParameterSet()`, throwing before anything is written on
+  failure), then rejects a duplicate `setId` within the same key, then
+  **appends**; `findParameterSet` keeps its original single-result
+  signature for backward compatibility; `findAllParameterSets` exposes
+  the full list. `toParameterRecord` skips any parameter with no value.
 - **`parameters/resolve.ts`** — `resolveParameterSet({ modelId, composition, conditions?, requiredKeys?, preferredSetId? })`
   answers "does an applicable, unambiguous, usable parameter set exist"
   as one of five states, never a silent pick:
@@ -539,22 +540,27 @@ entry says plainly that it's an engine-internal derivation, not a citation
   record from `"unavailable"` to `"verified_direct"` or
   `"verified_derived"` needs no architecture change — just a `value` and
   a `verification`/`derivation` record satisfying `validateParameterRecord.ts`.
-- **`validateParameterSet`/`validateParameterValue` are not wired into
-  `registerParameterSet`.** They are an opt-in check a data author runs
-  before registering a set (as `auCu.test.ts` does for all three real
-  Au-Cu records) — not a mandatory gate the store itself enforces. This
-  was a deliberate Phase 2D scope decision, not an oversight: wiring
-  validation into the store would touch `parameterStore.ts`, which is
-  outside this phase's intended footprint, and would break every
-  pre-existing test fixture (Phase 2A/2B/2C) written before the
-  `verification`/`derivation` fields existed. As defense-in-depth against
-  exactly this gap, `toRequestParameters.ts` independently refuses to
-  convert a set whose `compatibility` is `"requires_explicit_transformation"`
-  or `"not_compatible"`, and never emits a parameter whose `status` is
-  `"unavailable"` — regardless of what the resolver decided or what a
-  malformed record might otherwise contain (see its "safety review"
-  test block). A future phase that wants registration-time enforcement
-  should update the legacy fixtures at the same time.
+- ~~`validateParameterSet`/`validateParameterValue` are not wired into
+  `registerParameterSet`~~ — **fixed in Phase 2D.1.** Through Phase 2D,
+  validation was an opt-in check a data author had to remember to run
+  before registering a set; `registerParameterSet()` now calls
+  `validateParameterSet()` itself and throws — before anything is
+  written to the store, and before the pre-existing duplicate-setId
+  check — if the set fails any of `validateParameterRecord.ts`'s rules.
+  Registration is now all-or-nothing: a caller can no longer observe a
+  set in the store that contradicts its own stated status/compatibility.
+  Fixing this touched every pre-2D.1 test fixture across the codebase
+  that predated the `verification`/`derivation` fields (adding the now-
+  required `VerificationRecord` to each, and a missing `citation` where
+  one was absent) — see `parameterStore.test.ts`'s "registration-time
+  validation" tests for the rejection cases (an unavailable parameter
+  carrying a value, a verified_* status missing its record, a blocked
+  set containing a usable value, a less-restrictive parameter-level
+  override, a missing citation) and for confirmation that a rejected set
+  never partially enters the store. `toRequestParameters.ts` still keeps
+  its own independent, redundant checks (never emitting an `unavailable`
+  parameter, refusing a blocked set) as defense-in-depth beneath this
+  gate, not instead of it — belt and suspenders, not either/or.
 - **`CalculationPipeline.ts` auto-resolving parameters from the store.**
   The resolver is opt-in (a caller resolves *before* building a
   `CalculationRequest`) rather than wired into the pipeline itself — see

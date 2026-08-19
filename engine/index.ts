@@ -52,6 +52,7 @@ export { runCalculation } from "./pipeline/CalculationPipeline.js";
 export { IDEAL_SOLUTION_SCC0_MODEL_ID } from "./models/thermodynamics/ideal/index.js";
 export { REGULAR_SOLUTION_SCC0_MODEL_ID } from "./models/thermodynamics/regular/index.js";
 export { QUASI_CHEMICAL_SCC0_MODEL_ID } from "./models/thermodynamics/quasi-chemical/index.js";
+export { MIVM_BINARY_MODEL_ID } from "./models/thermodynamics/mivm/index.js";
 
 export type { ModelComparisonEntry, ModelComparisonRequest, ModelComparisonResult } from "./comparison/ModelComparison.js";
 export { compareModels } from "./comparison/ModelComparison.js";
@@ -99,6 +100,8 @@ export { systemLabel } from "./core/Material.js";
 
 export { resolveRegularSolutionParameters } from "./models/thermodynamics/regular/index.js";
 export { resolveQuasiChemicalParameters } from "./models/thermodynamics/quasi-chemical/index.js";
+export { computeMivmBinary, resolveMivmParameters } from "./models/thermodynamics/mivm/index.js";
+export type { MivmBinaryResult } from "./models/thermodynamics/mivm/index.js";
 
 export { ENGINE_VERSION } from "./version.js";
 
