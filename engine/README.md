@@ -335,103 +335,178 @@ one without touching `identifySystem`'s callers.
 
 ## Parameter architecture
 
-Phase 2A built the *shape* of a parameter database; Phase 2B turns it
-into one. Phase 2C went looking for real Au-Cu literature data to put in
-it — `engine/data/parameterSets/auCu.ts` holds three real, cited records
-(Sundman/Fries/Oates 1998, Singh/Sommer 1997, Su/Wang 2013), and every one
-of them still has `status: "unavailable"`, because none could be
-independently verified against a primary source in this environment. See
-`engine/data/parameterSets/DATA_MANIFEST.md` for the full compatibility
-assessment (including why a real CALPHAD Au-Cu assessment's Redlich-Kister
-parameterization is not directly usable by this project's single-W Regular
-Solution model) and exactly what was and wasn't retrievable. The parameter
-store itself remains **empty by default** — those records are not
-auto-registered — and no real numeric data exists anywhere in this
-codebase. Every field below exists so that when real, cited, *verifiable*
-data is available, it has somewhere honest to go.
+Phase 2A built the *shape* of a parameter database; Phase 2B turned it
+into one; Phase 2C went looking for real Au-Cu literature data to put in
+it; Phase 2D made the *quality* of that data structured and checkable
+instead of prose-only. **No numerical scientific value has been verified
+in any of these phases.** `engine/data/parameterSets/auCu.ts` holds three
+real, cited records (Sundman/Fries/Oates 1998, Singh/Sommer 1997,
+Su/Wang 2013), and every one of them still has `status: "unavailable"`,
+because none could be independently verified against a primary source in
+this environment. See `engine/data/parameterSets/DATA_MANIFEST.md` for
+the full compatibility assessment. The parameter store itself remains
+**empty by default** — those records are not auto-registered — and no
+real numeric data exists anywhere in this codebase.
+
+### Three separate questions, three separate concepts
+
+Phase 2D's central architectural rule: these must never be conflated,
+because they're genuinely different questions with different answers.
+
+```
+PARAMETER STATUS     "What is the verification state of THIS NUMBER?"
+      |                (ParameterValue.status — stored, per value)
+      v
+COMPATIBILITY         "Can this SOURCE's parameterization even be used
+      |                 by this model, in shape?"
+      |                (ParameterSet.compatibility — stored, per set,
+      |                 authoritative)
+      v
+RESOLUTION STATUS     "What happened when the engine tried to resolve
+                        a QUERY against what's registered?"
+                       (ParameterResolutionStatus — computed at query
+                        time, never stored — see resolve.ts)
+```
+
+A set can be `"directly_compatible"` in shape while every value inside it
+is still `"unavailable"` (nobody has confirmed a number yet) — Singh &
+Sommer's Au-Cu record is exactly this. A set can never be
+`"not_compatible"` (or `"requires_explicit_transformation"`) and contain
+a usable value — `validateParameterSet` enforces this structurally, not
+just by convention. And `AMBIGUOUS` is never something you'll find stored
+on a record — it only exists as an answer to a specific query, computed
+fresh each time from whatever happens to be registered.
 
 - **`parameters/types.ts`** — `ParameterValue`: `key`, optional `name`,
-  optional `value` (a number — **required** unless `status` is
-  `"unavailable"`, in which case it **must be absent**; this is how a
-  placeholder record says "we know this parameter is needed but have no
-  verified number" without ever inventing one), `unit`, `source`
-  (`core/ParameterSource.ts` — now also carrying optional `doi`/
-  `publicationYear`), `status` (`"verified" | "provisional" |
-  "unavailable"`), optional `uncertainty`, optional `notes`.
-  `ParameterSet`: `setId` (uniquely identifies *this* set among possibly
-  several competing ones for the same model+system), `modelId`, `system`
-  (as the registrant wrote it — not forced to canonical order),
-  `validTemperatureRangeK?`, `validCompositionRangeMoleFraction?`, and
-  `parameters: ParameterValue[]`.
-- **`parameters/parameterStore.ts`** — now `Map<string, ParameterSet[]>`
-  (Phase 2A was one set per key; Phase 2B supports several, e.g. two
-  literature sources both reporting W for Au-Cu), keyed by
-  `(modelId, canonicalizeSystemLabel(system))` — registering under
-  `"Cu-Au"` and looking up `"Au-Cu"` finds the same entries.
-  `registerParameterSet` **appends** (Phase 2A's version overwrote) and
-  rejects a duplicate `setId` within the same key. `findParameterSet`
-  keeps its exact Phase 2A signature and behavior (`sets[0]`) for backward
-  compatibility; the new `findAllParameterSets` exposes the full list.
-  `toParameterRecord` skips any parameter with no value rather than
-  coercing `undefined` into the `Record<string, number>` shape
-  `CalculationRequest.parameters` expects.
-- **`parameters/resolve.ts`** — `resolveParameterSet({ modelId, composition, conditions?, requiredKeys? })`
-  is where "does an applicable parameter set exist" gets answered, as one
-  of five explicit states, never a silent pick:
+  optional `value` (required unless `status` is `"unavailable"`, in which
+  case it **must be absent** — this is how a placeholder record says "we
+  know this parameter is needed but have no verified number" without ever
+  inventing one), `unit`, `source` (`core/ParameterSource.ts`), `status`
+  (`ParameterStatus`, below), optional `uncertainty`, optional
+  `derivation` (`DerivationRecord`), optional `verification`
+  (`VerificationRecord`), a rare optional per-value `compatibility`
+  override, optional `notes`. `ParameterSet` adds the **authoritative**
+  `compatibility?: CompatibilityAssessment` field, plus everything from
+  Phase 2B (`setId`, `modelId`, `system`, the two valid-range fields).
+- **`parameters/compatibility.ts`** (new, Phase 2D) — `CompatibilityAssessment`
+  (`"directly_compatible" | "requires_explicit_transformation" | "not_compatible"`),
+  `SourceLocation` (`{ type: "table"|"equation"|"figure"|"page"|"section"|"other", identifier?, page?, description? }`
+  — structured, e.g. `{type:"table", identifier:"3", page:112}` for
+  "Table 3, p. 112", never free text alone), `DerivationRecord`
+  (`transformationEquation`, `assumptions`, `sourceValues`, `derivedBy?`,
+  `derivedAt?`), and `VerificationRecord` (`method: "direct_read"|"cross_checked"|"derived"`,
+  `location?: SourceLocation`, `verifiedBy?`, `verifiedAt?`).
+- **`ParameterStatus`** (`parameters/types.ts`) is now four values:
+  `"verified_direct"` (read straight off a cited source — the strongest
+  status), `"verified_derived"` (computed via a documented, reviewable
+  transformation from directly-verified inputs — see `DerivationRecord`),
+  `"provisional"` (a number exists, not independently checked), and
+  `"unavailable"` (no number at all). Splitting the old single `"verified"`
+  into two was low-risk: `resolve.ts` never tested that literal string —
+  it only ever checked for `"provisional"` (demote) and `"unavailable"`
+  (exclude) — so the split cost zero resolver logic changes, only test
+  fixture literals.
+- **`parameters/validateParameterRecord.ts`** (new, Phase 2D) —
+  `validateParameterValue()` and `validateParameterSet()`, structural
+  checks that don't judge whether a *number* is scientifically correct
+  (that's a human/literature question) but do enforce internal
+  consistency: an `"unavailable"` value can't carry a value, derivation,
+  or uncertainty; `"verified_direct"` requires a `verification` record
+  (method `direct_read` or `cross_checked`) and forbids a `derivation`;
+  `"verified_derived"` requires both a `verification` record (method
+  `derived`) *and* a complete `DerivationRecord` — non-empty
+  `transformationEquation`, at least one `assumptions` entry, and
+  non-empty `sourceValues` — so "verified_derived" can never become a
+  label for an undocumented calculation; a `literature`/`database` source
+  should carry a `citation`; a set-level `"requires_explicit_transformation"`
+  or `"not_compatible"` classification forbids every parameter in that
+  set from having a usable status; and a parameter-level `compatibility`
+  override may only be *equally or more restrictive* than its set's — an
+  override can never claim to be more permissive than the authoritative
+  set-level classification.
+- **`parameters/parameterStore.ts`** — `Map<string, ParameterSet[]>`
+  keyed by `(modelId, canonicalizeSystemLabel(system))`; registering
+  under `"Cu-Au"` and looking up `"Au-Cu"` finds the same entries.
+  `registerParameterSet` **appends** and rejects a duplicate `setId`
+  within the same key; `findParameterSet` keeps its original
+  single-result signature for backward compatibility; `findAllParameterSets`
+  exposes the full list. `toParameterRecord` skips any parameter with no
+  value.
+- **`parameters/resolve.ts`** — `resolveParameterSet({ modelId, composition, conditions?, requiredKeys?, preferredSetId? })`
+  answers "does an applicable, unambiguous, usable parameter set exist"
+  as one of five states, never a silent pick:
 
   | Status | Meaning |
   |---|---|
-  | `FOUND` | Exactly one applicable, verified set. |
-  | `PROVISIONAL` | Exactly one applicable set, but not independently verified. |
+  | `FOUND` | Exactly one applicable set with a usable (non-provisional) value. |
+  | `PROVISIONAL` | Exactly one applicable set, but at least one relevant value isn't independently verified. |
   | `NOT_FOUND` | Nothing registered for this (model, canonical system) — or everything registered is `"unavailable"`. |
   | `OUT_OF_RANGE` | Set(s) exist but none cover the requested temperature/composition. |
   | `AMBIGUOUS` | More than one set applies — the resolver refuses to pick one; every candidate is returned for the caller to choose from explicitly. |
 
   Contains no scientific equations and isn't specific to any model — the
-  same function resolves Regular Solution's `W` or a future MIVM model's
-  parameters identically (proven in `resolve.test.ts` by resolving a
-  fixture registered under the real Quasi-Chemical model id).
-
-  An `AMBIGUOUS` result isn't a dead end: the query can carry an optional
-  `preferredSetId` (Phase 2C) so a caller who already knows which source
-  they want (e.g. a user picking one of two displayed literature values)
-  resolves directly to it instead of the resolver ever guessing between
-  them. It has no effect unless a genuine ambiguity exists to narrow.
+  same function resolves Regular Solution's `W`, Quasi-Chemical's `Z`/`W`,
+  or a future MIVM model's parameters identically. An `AMBIGUOUS` result
+  isn't a dead end: `preferredSetId` lets a caller who already knows which
+  source they want resolve directly to it, and it can only ever *narrow*
+  a genuine ambiguity, never invent one.
+- **`parameters/toRequestParameters.ts`** (new, Phase 2D) —
+  `toRequestParameters(resolution, requiredKeys?)` converts a `FOUND` or
+  `PROVISIONAL` resolution into the exact `{ parameters, parameterSources }`
+  shape `CalculationRequest` expects, copying each value's `source`
+  through unchanged. This mechanizes what Phase 2C's end-to-end test did
+  by hand — a caller can no longer forget to carry provenance through —
+  and throws for any other resolution status (`NOT_FOUND`/`OUT_OF_RANGE`/
+  `AMBIGUOUS`), since there is no single resolved set to convert and
+  building a request from one of those would either fabricate a parameter
+  or silently pick among competing sources.
 
 How a model requests and validates parameters hasn't changed since Phase
 1a: `ModelDefinition.requiredParameters: ModelParameterSpec[]` declares
-what's needed, and the model's own `validate()` checks presence/range
-(now categorized as `INVALID_PARAMETER` — see Errors.ts). The resolver is
-a separate, **opt-in** layer above that — `CalculationPipeline.ts` does
-not call it, and no model's `calculate()`/`validate()` was changed to call
-it either (see "Regular Solution's resolver integration" below for why).
+what's needed, and the model's own `validate()` checks presence/range.
+The resolver (and everything built on it) is a separate, **opt-in** layer
+above that — `CalculationPipeline.ts` does not call it, and no model's
+`calculate()`/`validate()` was changed to call it either.
 
-## Regular Solution's resolver integration
+## Resolver integration: Regular Solution and Quasi-Chemical
 
-`models/thermodynamics/regular/parameters.ts` exports
-`resolveRegularSolutionParameters(material, conditions)` — a thin wrapper
-around `resolveParameterSet({ modelId: REGULAR_SOLUTION_SCC0_MODEL_ID, composition: material.composition, conditions, requiredKeys: ["W"] })`.
+Both `models/thermodynamics/regular/parameters.ts`
+(`resolveRegularSolutionParameters`) and
+`models/thermodynamics/quasi-chemical/parameters.ts`
+(`resolveQuasiChemicalParameters`, added Phase 2D) are thin wrappers
+around `resolveParameterSet`, scoped to their own model id and their own
+required keys (`["W"]` for Regular Solution; `["Z", "W"]` for
+Quasi-Chemical) — mirrors of each other, both taking the same optional
+`preferredSetId`.
 
-This is deliberately **not** wired into `regular/model.ts`'s
-`calculate()`/`validate()` or into `CalculationPipeline.ts`. A caller
-(a future UI, a script, a test) uses it *before* building a
-`CalculationRequest`, to find out whether a verified `W` exists for the
-requested system/temperature and decide what to do — proceed, show
-"parameter not available," ask the user to supply one — without the
-engine ever guessing on the caller's behalf. Keeping this separate from
-the pipeline is what keeps Regular Solution's `calculate()`/`validate()`
-(and all 118 Phase 1a/1b/2A tests) at zero regression risk this phase.
+Neither is wired into its model's `calculate()`/`validate()` or into
+`CalculationPipeline.ts`. A caller (a future UI, a script, a test) uses
+one *before* building a `CalculationRequest`, to find out whether a
+verified value exists for the requested system/temperature and decide
+what to do — proceed, show "parameter not available," ask the user to
+supply one — without the engine ever guessing on the caller's behalf.
+Keeping this separate from the pipeline is what keeps every model's
+`calculate()`/`validate()` (and all 232 tests as of Phase 2D) at zero
+regression risk when this layer changes.
 
-Because the store ships with no real data, calling this against the real
-Au-Cu system today returns `NOT_FOUND` — `parameters.test.ts` asserts
-exactly that against the actual, unmodified production store, plus that
-no numeric `W` value appears anywhere in the result. The same file also
-registers synthetic (clearly-labeled, non-real) fixtures to exercise
-`FOUND`, `OUT_OF_RANGE`, and `AMBIGUOUS`, and confirms a fixture
-registered for a different system (Fe-Ni) or a different model
-(Quasi-Chemical) is never returned for an Au-Cu Regular Solution query —
-model- and system-scoping are structural (an exact `Map` key match, no
-fuzzy fallback), not something that can be accidentally bypassed.
+Because the store ships with no real data, calling either wrapper against
+the real Au-Cu system today returns `NOT_FOUND` — `parameters.test.ts`
+(both models') asserts exactly that against the actual, unmodified
+production store, plus that no numeric value appears anywhere in the
+result. The same files register synthetic (clearly-labeled, non-real)
+fixtures to exercise `FOUND`, `OUT_OF_RANGE`, and `AMBIGUOUS`, and confirm
+a fixture registered for a different system or a different model is never
+returned for an Au-Cu query — model- and system-scoping are structural
+(an exact `Map` key match, no fuzzy fallback), not something that can be
+accidentally bypassed.
+
+`parameters/toRequestParameters.test.ts` chains the whole thing together
+end to end for both models: register a fixture → resolve it → convert
+with `toRequestParameters` → `runCalculation` → check
+`CalculationResult.parameterProvenance` carries the exact same `source`
+object the fixture was registered with. Quasi-Chemical's version of this
+test also checks the resulting `Scc0` against the existing golden value —
+proof this whole new layer changes nothing about the equation itself.
 
 ## Scientific traceability
 
@@ -446,26 +521,45 @@ and the standard fluctuation formalism); Regular Solution's `references`
 entry says plainly that it's an engine-internal derivation, not a citation
 — see "The three thermodynamic Scc(0) models" above.
 
-## What's deliberately not here (Phase 2B scope)
+## What's deliberately not here (through Phase 2D)
 
 - Any UI, chart, form, or DOM code — the engine has zero dependency on
-  React, the DOM, or any browser API. Phase 2B did not touch `app/` or
-  `index.html` at all.
-- **Real numeric data in the parameter store.** The store, resolver, and
-  system-identity architecture are all implemented and tested, but
-  `parameters/parameterStore.ts` still registers nothing by default — see
-  "Parameter architecture" above for why, and `resolve.test.ts`/
-  `regular/parameters.test.ts` for the tests proving the real Au-Cu system
-  resolves to `NOT_FOUND` today rather than a fabricated value. Populating
-  this with a real, cited dataset (starting with Au-Cu W/Z if a citable
-  source is found) is the natural next step and needs no architecture
-  changes — just `registerParameterSet()` calls with real `ParameterValue`
-  entries.
+  React, the DOM, or any browser API. No phase through 2D has touched
+  `app/` or `index.html`.
+- **Any verified numeric value in the parameter store.** The store,
+  resolver, system-identity, compatibility, and validation architecture
+  are all implemented and tested, but `parameters/parameterStore.ts`
+  still registers nothing by default, and the three real, cited Au-Cu
+  records in `data/parameterSets/auCu.ts` all remain `status:
+  "unavailable"` after Phase 2D as well — see "Parameter architecture"
+  above and `DATA_MANIFEST.md` for why, and `resolve.test.ts` /
+  `regular/parameters.test.ts` / `quasi-chemical/parameters.test.ts` for
+  the tests proving the real Au-Cu system resolves to `NOT_FOUND` today
+  rather than a fabricated or prematurely-trusted value. Upgrading any
+  record from `"unavailable"` to `"verified_direct"` or
+  `"verified_derived"` needs no architecture change — just a `value` and
+  a `verification`/`derivation` record satisfying `validateParameterRecord.ts`.
+- **`validateParameterSet`/`validateParameterValue` are not wired into
+  `registerParameterSet`.** They are an opt-in check a data author runs
+  before registering a set (as `auCu.test.ts` does for all three real
+  Au-Cu records) — not a mandatory gate the store itself enforces. This
+  was a deliberate Phase 2D scope decision, not an oversight: wiring
+  validation into the store would touch `parameterStore.ts`, which is
+  outside this phase's intended footprint, and would break every
+  pre-existing test fixture (Phase 2A/2B/2C) written before the
+  `verification`/`derivation` fields existed. As defense-in-depth against
+  exactly this gap, `toRequestParameters.ts` independently refuses to
+  convert a set whose `compatibility` is `"requires_explicit_transformation"`
+  or `"not_compatible"`, and never emits a parameter whose `status` is
+  `"unavailable"` — regardless of what the resolver decided or what a
+  malformed record might otherwise contain (see its "safety review"
+  test block). A future phase that wants registration-time enforcement
+  should update the legacy fixtures at the same time.
 - **`CalculationPipeline.ts` auto-resolving parameters from the store.**
   The resolver is opt-in (a caller resolves *before* building a
   `CalculationRequest`) rather than wired into the pipeline itself — see
-  "Regular Solution's resolver integration" above for why this was the
-  lower-risk design for this phase specifically.
+  "Resolver integration: Regular Solution and Quasi-Chemical" above for
+  why this was the lower-risk design.
 - **MIVM, CALPHAD, and Self-Association models** — not implemented. Each
   needs its own equation identified/derived and verified the way Regular
   Solution was in Phase 2A, which both phases' briefs explicitly deferred

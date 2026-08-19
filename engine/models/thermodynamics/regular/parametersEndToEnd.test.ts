@@ -39,7 +39,7 @@ function syntheticSet(overrides: Partial<ParameterSet> = {}): ParameterSet {
         key: "W",
         value: -19000,
         unit: "J/mol",
-        status: "verified",
+        status: "verified_direct",
         source: {
           kind: "literature",
           citation: "SYNTHETIC TEST FIXTURE — not a real publication, not real Au-Cu data",
@@ -120,7 +120,7 @@ describe("Regular Solution parameter resolution — full end-to-end chain (synth
             key: "W",
             value: -17500,
             unit: "J/mol",
-            status: "verified",
+            status: "verified_direct",
             source: { kind: "literature", citation: "SYNTHETIC TEST FIXTURE B — not real data" },
           },
         ],
@@ -146,7 +146,7 @@ describe("Regular Solution parameter resolution — full end-to-end chain (synth
             key: "W",
             value: -17500,
             unit: "J/mol",
-            status: "verified",
+            status: "verified_direct",
             source: { kind: "literature", citation: "SYNTHETIC TEST FIXTURE B — not real data" },
           },
         ],
@@ -166,7 +166,7 @@ describe("Regular Solution parameter resolution — full end-to-end chain (synth
     const resolution = resolveRegularSolutionParameters(material, conditions);
     const w = resolution.parameterSet?.parameters.find((p) => p.key === "W");
     expect(w?.unit).toBe("J/mol");
-    expect(w?.status).toBe("verified");
+    expect(w?.status).toBe("verified_direct");
   });
 
   it("PROVISIONAL status is preserved end-to-end and distinguished from FOUND", () => {

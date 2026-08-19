@@ -21,7 +21,7 @@ function makeSet(overrides: Partial<ParameterSet> = {}): ParameterSet {
     modelId: MODEL_ID,
     system: "Au-Cu",
     parameters: [
-      { key: "W", value: -12345, unit: "J/mol", status: "verified", source: { kind: "literature", citation: "test fixture" } },
+      { key: "W", value: -12345, unit: "J/mol", status: "verified_direct", source: { kind: "literature", citation: "test fixture" } },
     ],
     ...overrides,
   };
@@ -111,7 +111,7 @@ describe("resolveParameterSet", () => {
 
   it("AMBIGUOUS when two competing sets both apply, and does not silently pick either", () => {
     registerParameterSet(makeSet({ setId: "source-a" }));
-    registerParameterSet(makeSet({ setId: "source-b", parameters: [{ key: "W", value: -999, unit: "J/mol", status: "verified", source: { kind: "literature" } }] }));
+    registerParameterSet(makeSet({ setId: "source-b", parameters: [{ key: "W", value: -999, unit: "J/mol", status: "verified_direct", source: { kind: "literature" } }] }));
 
     const result = resolveParameterSet({ modelId: MODEL_ID, composition: auCu });
     expect(result.status).toBe("AMBIGUOUS");
@@ -123,7 +123,7 @@ describe("resolveParameterSet", () => {
     registerParameterSet(
       makeSet({
         parameters: [
-          { key: "W", value: -1, unit: "J/mol", status: "verified", source: { kind: "literature" } },
+          { key: "W", value: -1, unit: "J/mol", status: "verified_direct", source: { kind: "literature" } },
           { key: "Z", unit: "dimensionless", status: "unavailable", source: { kind: "estimated" } },
         ],
       }),
@@ -137,7 +137,7 @@ describe("resolveParameterSet", () => {
       makeSet({
         parameters: [
           { key: "W", unit: "J/mol", status: "unavailable", source: { kind: "estimated" } },
-          { key: "Z", value: 10, unit: "dimensionless", status: "verified", source: { kind: "literature" } },
+          { key: "Z", value: 10, unit: "dimensionless", status: "verified_direct", source: { kind: "literature" } },
         ],
       }),
     );
@@ -166,7 +166,7 @@ describe("resolveParameterSet — scientific safety (cannot cross-contaminate mo
 
   it("works identically for a real registered model id (Quasi-Chemical), proving genericity beyond the test fixture model", () => {
     registerParameterSet(
-      makeSet({ modelId: QUASI_CHEMICAL_SCC0_MODEL_ID, parameters: [{ key: "Z", value: 10, unit: "dimensionless", status: "verified", source: { kind: "literature" } }] }),
+      makeSet({ modelId: QUASI_CHEMICAL_SCC0_MODEL_ID, parameters: [{ key: "Z", value: 10, unit: "dimensionless", status: "verified_direct", source: { kind: "literature" } }] }),
     );
     const result = resolveParameterSet({ modelId: QUASI_CHEMICAL_SCC0_MODEL_ID, composition: auCu });
     expect(result.status).toBe("FOUND");

@@ -20,7 +20,7 @@ function fixtureWSet(overrides: Partial<ParameterSet> = {}): ParameterSet {
         key: "W",
         value: -20000,
         unit: "J/mol",
-        status: "verified",
+        status: "verified_direct",
         source: { kind: "literature", citation: "synthetic test fixture, not a real publication" },
       },
     ],
@@ -49,7 +49,7 @@ describe("resolveRegularSolutionParameters", () => {
     const w = result.parameterSet?.parameters.find((p) => p.key === "W");
     expect(w?.value).toBe(-20000);
     expect(w?.source.kind).toBe("literature");
-    expect(w?.status).toBe("verified");
+    expect(w?.status).toBe("verified_direct");
   });
 
   it("resolves the same fixture regardless of whether the material lists Au or Cu first", () => {
@@ -70,7 +70,7 @@ describe("resolveRegularSolutionParameters", () => {
     registerParameterSet(
       fixtureWSet({
         setId: "source-b",
-        parameters: [{ key: "W", value: -18000, unit: "J/mol", status: "verified", source: { kind: "literature" } }],
+        parameters: [{ key: "W", value: -18000, unit: "J/mol", status: "verified_direct", source: { kind: "literature" } }],
       }),
     );
     const result = resolveRegularSolutionParameters(material, conditions);

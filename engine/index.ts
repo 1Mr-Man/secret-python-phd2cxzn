@@ -59,7 +59,14 @@ export { compareModels } from "./comparison/ModelComparison.js";
 export type { CompositionSweepPoint, CompositionSweepRequest, CompositionSweepResult } from "./pipeline/CompositionSweep.js";
 export { runCompositionSweep } from "./pipeline/CompositionSweep.js";
 
-export type { ParameterSet, ParameterSource, ParameterSourceKind, ParameterStatus, ParameterValue } from "./parameters/types.js";
+export type {
+  CompatibilityAssessment,
+  ParameterSet,
+  ParameterSource,
+  ParameterSourceKind,
+  ParameterStatus,
+  ParameterValue,
+} from "./parameters/types.js";
 export {
   clearParameterStore,
   findAllParameterSets,
@@ -68,8 +75,22 @@ export {
   toParameterRecord,
 } from "./parameters/parameterStore.js";
 
+export type {
+  DerivationRecord,
+  SourceLocation,
+  SourceLocationType,
+  VerificationMethod,
+  VerificationRecord,
+} from "./parameters/compatibility.js";
+
+export type { ParameterValidationIssue, ParameterValidationResult } from "./parameters/validateParameterRecord.js";
+export { validateParameterSet, validateParameterValue } from "./parameters/validateParameterRecord.js";
+
 export type { ParameterResolutionQuery, ParameterResolutionResult, ParameterResolutionStatus } from "./parameters/resolve.js";
 export { resolveParameterSet } from "./parameters/resolve.js";
+
+export type { RequestParameters } from "./parameters/toRequestParameters.js";
+export { toRequestParameters } from "./parameters/toRequestParameters.js";
 
 export type { SystemIdentity } from "./core/SystemIdentity.js";
 export { canonicalizeSystemLabel, identifySystem } from "./core/SystemIdentity.js";
@@ -77,6 +98,7 @@ export { canonicalizeSystemLabel, identifySystem } from "./core/SystemIdentity.j
 export { systemLabel } from "./core/Material.js";
 
 export { resolveRegularSolutionParameters } from "./models/thermodynamics/regular/index.js";
+export { resolveQuasiChemicalParameters } from "./models/thermodynamics/quasi-chemical/index.js";
 
 export { ENGINE_VERSION } from "./version.js";
 

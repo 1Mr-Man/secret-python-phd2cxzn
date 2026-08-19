@@ -4,15 +4,18 @@ import type { ParameterSet } from "../../parameters/types.js";
 
 /**
  * ============================================================================
- * Au-Cu — REAL literature records (Phase 2C)
+ * Au-Cu — REAL literature records (Phase 2C, restructured Phase 2D)
  * ============================================================================
  *
+ * NO NUMERICAL SCIENTIFIC VALUE HAS BEEN VERIFIED IN THIS PHASE (2D) EITHER.
  * Every ParameterSet in this file corresponds to an actual, identifiable
  * publication. NONE of them carries a numeric `value` — every parameter's
  * `status` is `"unavailable"`. This is not a placeholder waiting to be
- * filled with a best guess; it is the documented, honest outcome of this
- * phase's research (see ../../../engine/data/parameterSets/DATA_MANIFEST.md
- * for the full compatibility assessment).
+ * filled with a best guess; it is the documented, honest outcome of Phase
+ * 2C's research, now expressed with Phase 2D's structured `compatibility`
+ * field instead of prose alone (see DATA_MANIFEST.md for the full
+ * compatibility assessment and Phase 2D's ParameterStatus/
+ * CompatibilityAssessment/DerivationRecord/VerificationRecord model).
  *
  * Why no value: this environment's network egress is blocked for every
  * publisher/repository domain that would let a specific numeric table
@@ -27,13 +30,15 @@ import type { ParameterSet } from "../../parameters/types.js";
  * that means no value — not an approximate one, not a "looks about right"
  * one — goes in.
  *
- * These records exist anyway because the citation, the compatibility
- * assessment, and the fact that this specific parameter is *known to be
- * needed and not yet sourced* are themselves useful, honest data. A future
- * phase with either direct journal access or a manually-supplied excerpt
- * can upgrade any of these from "unavailable" to "verified" by adding a
- * `value` and changing `status` — the architecture requires no other
- * change to do so (see engine/parameters/resolve.ts).
+ * These records exist anyway because the citation, the set-level
+ * `compatibility` classification, and the fact that this specific
+ * parameter is *known to be needed and not yet sourced* are themselves
+ * useful, honest, now machine-readable data. A future phase with either
+ * direct journal access or a manually-supplied excerpt can upgrade any of
+ * these from `"unavailable"` to `"verified_direct"` by adding a `value`
+ * and a `verification` record — the architecture requires no other change
+ * to do so (see engine/parameters/resolve.ts and
+ * engine/parameters/validateParameterRecord.ts).
  *
  * NOT auto-registered into the running parameter store — see
  * engine/index.ts, which still registers no parameter data by default.
@@ -45,6 +50,11 @@ export const AU_CU_REGULAR_SOLUTION_SUNDMAN_1998: ParameterSet = {
   setId: "au-cu.regular-solution.sundman-fries-oates-1998",
   modelId: REGULAR_SOLUTION_SCC0_MODEL_ID,
   system: "Au-Cu",
+  // Authoritative, set-level (Phase 2D Correction 1): a multi-term
+  // Redlich-Kister CALPHAD fit is not the same mathematical object as this
+  // model's single symmetric W. validateParameterSet() enforces that a
+  // "requires_explicit_transformation" set can never contain a usable value.
+  compatibility: "requires_explicit_transformation",
   parameters: [
     {
       key: "W",
@@ -67,6 +77,11 @@ export const AU_CU_REGULAR_SOLUTION_SINGH_SOMMER_1997: ParameterSet = {
   setId: "au-cu.regular-solution.singh-sommer-1997",
   modelId: REGULAR_SOLUTION_SCC0_MODEL_ID,
   system: "Au-Cu",
+  // Set-level: form-compatible with this model's single-W equation (a
+  // single interaction/order-energy parameter, same formalism) — but
+  // "compatible in shape" is not "confirmed"; status stays "unavailable"
+  // below because the actual table value was never independently read.
+  compatibility: "directly_compatible",
   parameters: [
     {
       key: "W",
@@ -90,6 +105,11 @@ export const AU_CU_QUASI_CHEMICAL_SU_WANG_2013: ParameterSet = {
   setId: "au-cu.quasi-chemical.su-wang-2013",
   modelId: QUASI_CHEMICAL_SCC0_MODEL_ID,
   system: "Au-Cu",
+  // `compatibility` deliberately left UNSET, not forced into one of the
+  // three buckets: whether this paper's η²/order-energy definition matches
+  // this project's η² = exp(2W/(ZRT)) term for term genuinely could not be
+  // determined (full text was unreachable). "Undetermined" is honestly
+  // different from asserting compatibility either way — see DATA_MANIFEST.md.
   parameters: [
     {
       key: "Z",

@@ -5,7 +5,9 @@ import { QUASI_CHEMICAL_SCC0_MODEL_ID } from "../../models/thermodynamics/quasi-
 import { REGULAR_SOLUTION_SCC0_MODEL_ID } from "../../models/thermodynamics/regular/index.js";
 import { clearParameterStore, findAllParameterSets, registerParameterSet } from "../../parameters/parameterStore.js";
 import { resolveParameterSet } from "../../parameters/resolve.js";
+import { validateParameterSet } from "../../parameters/validateParameterRecord.js";
 import {
+  AU_CU_KNOWN_SOURCES,
   AU_CU_QUASI_CHEMICAL_SU_WANG_2013,
   AU_CU_REGULAR_SOLUTION_SINGH_SOMMER_1997,
   AU_CU_REGULAR_SOLUTION_SUNDMAN_1998,
@@ -113,6 +115,37 @@ describe("real Au-Cu literature records", () => {
         expect(parameter.value).toBeUndefined();
         expect(parameter.source.citation).toBeTruthy();
         expect(parameter.source.publicationYear).toBeGreaterThan(1900);
+      }
+    }
+  });
+});
+
+describe("real Au-Cu records — compatibility classification (Phase 2D)", () => {
+  it("Sundman/Fries/Oates (CALPHAD, Redlich-Kister) is classified requires_explicit_transformation", () => {
+    expect(AU_CU_REGULAR_SOLUTION_SUNDMAN_1998.compatibility).toBe("requires_explicit_transformation");
+  });
+
+  it("Singh/Sommer (single-W formalism) is classified directly_compatible", () => {
+    expect(AU_CU_REGULAR_SOLUTION_SINGH_SOMMER_1997.compatibility).toBe("directly_compatible");
+  });
+
+  it("Su/Wang (QC form unconfirmed) leaves compatibility unset rather than guessing", () => {
+    expect(AU_CU_QUASI_CHEMICAL_SU_WANG_2013.compatibility).toBeUndefined();
+  });
+
+  it("every real record passes validateParameterSet — structurally consistent, no contradictions", () => {
+    for (const set of AU_CU_KNOWN_SOURCES) {
+      const result = validateParameterSet(set);
+      expect(result.valid).toBe(true);
+      expect(result.issues).toEqual([]);
+    }
+  });
+
+  it("all three records remain unavailable and produce no numeric value anywhere, migration or not", () => {
+    for (const set of AU_CU_KNOWN_SOURCES) {
+      for (const parameter of set.parameters) {
+        expect(parameter.status).toBe("unavailable");
+        expect(parameter.value).toBeUndefined();
       }
     }
   });
