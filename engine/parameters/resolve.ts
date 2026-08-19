@@ -24,6 +24,16 @@ export interface ParameterResolutionQuery {
    * value at all" — useful for a generic "what's registered" query.
    */
   requiredKeys?: string[];
+  /**
+   * If given and it matches one of the sets that would otherwise be
+   * AMBIGUOUS, resolves directly to that set instead — the caller
+   * explicitly chose a source rather than the resolver silently picking
+   * one. Has no effect when zero or one set applies (nothing to choose
+   * between) or when it doesn't match any applicable set (still AMBIGUOUS,
+   * or NOT_FOUND/OUT_OF_RANGE as normal) — this can only narrow an
+   * ambiguous result, never invent one that wasn't already applicable.
+   */
+  preferredSetId?: string;
 }
 
 export interface ParameterResolutionResult {
@@ -77,7 +87,7 @@ function hasUsableValue(set: ParameterSet, requiredKeys?: string[]): boolean {
  * model's parameters identically.
  */
 export function resolveParameterSet(query: ParameterResolutionQuery): ParameterResolutionResult {
-  const { modelId, composition, conditions, requiredKeys } = query;
+  const { modelId, composition, conditions, requiredKeys, preferredSetId } = query;
   const canonicalSystemId = identifySystem(composition).canonicalId;
 
   const allSets = findAllParameterSets(modelId, canonicalSystemId);
@@ -110,17 +120,23 @@ export function resolveParameterSet(query: ParameterResolutionQuery): ParameterR
   }
 
   if (inRange.length > 1) {
-    return {
-      status: "AMBIGUOUS",
-      canonicalSystemId,
-      candidates: inRange,
-      message: `${inRange.length} applicable parameter sets exist for model "${modelId}" and system "${canonicalSystemId}" (${inRange
-        .map((set) => set.setId)
-        .join(", ")}) — resolve explicitly by setId instead of guessing.`,
-    };
+    const preferred = preferredSetId ? inRange.find((set) => set.setId === preferredSetId) : undefined;
+    if (!preferred) {
+      return {
+        status: "AMBIGUOUS",
+        canonicalSystemId,
+        candidates: inRange,
+        message: `${inRange.length} applicable parameter sets exist for model "${modelId}" and system "${canonicalSystemId}" (${inRange
+          .map((set) => set.setId)
+          .join(", ")}) — resolve explicitly by setId instead of guessing.`,
+      };
+    }
+    // Caller explicitly chose one of the otherwise-ambiguous candidates —
+    // fall through to resolve against exactly that set, same as the
+    // single-applicable-set path below.
   }
 
-  const resolved = inRange[0]!;
+  const resolved = (preferredSetId && inRange.find((set) => set.setId === preferredSetId)) || inRange[0]!;
   const relevantParameters = requiredKeys
     ? resolved.parameters.filter((parameter) => requiredKeys.includes(parameter.key))
     : resolved.parameters;

@@ -82,5 +82,10 @@ export { ENGINE_VERSION } from "./version.js";
 
 export * as elements from "./data/elements.js";
 
+// Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)
+// literature parameter records. NOT auto-registered into the running
+// store — a caller registers explicitly if/when they want them queryable.
+export * as parameterSets from "./data/parameterSets/index.js";
+
 import { registerBuiltInModels } from "./models/index.js";
 registerBuiltInModels();

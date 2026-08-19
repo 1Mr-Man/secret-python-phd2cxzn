@@ -336,12 +336,19 @@ one without touching `identifySystem`'s callers.
 ## Parameter architecture
 
 Phase 2A built the *shape* of a parameter database; Phase 2B turns it
-into one — still with **no real numeric data in it**. Nothing is
-pre-seeded: this project has no verified literature source for the Au-Cu
-`W`/`Z` values used elsewhere in tests and the UI (they are demo inputs,
-not sourced constants), and seeding the store with them would misrepresent
-their provenance. Every field below exists so that when real, cited data
-*is* available, it has somewhere honest to go.
+into one. Phase 2C went looking for real Au-Cu literature data to put in
+it — `engine/data/parameterSets/auCu.ts` holds three real, cited records
+(Sundman/Fries/Oates 1998, Singh/Sommer 1997, Su/Wang 2013), and every one
+of them still has `status: "unavailable"`, because none could be
+independently verified against a primary source in this environment. See
+`engine/data/parameterSets/DATA_MANIFEST.md` for the full compatibility
+assessment (including why a real CALPHAD Au-Cu assessment's Redlich-Kister
+parameterization is not directly usable by this project's single-W Regular
+Solution model) and exactly what was and wasn't retrievable. The parameter
+store itself remains **empty by default** — those records are not
+auto-registered — and no real numeric data exists anywhere in this
+codebase. Every field below exists so that when real, cited, *verifiable*
+data is available, it has somewhere honest to go.
 
 - **`parameters/types.ts`** — `ParameterValue`: `key`, optional `name`,
   optional `value` (a number — **required** unless `status` is
@@ -384,6 +391,12 @@ their provenance. Every field below exists so that when real, cited data
   same function resolves Regular Solution's `W` or a future MIVM model's
   parameters identically (proven in `resolve.test.ts` by resolving a
   fixture registered under the real Quasi-Chemical model id).
+
+  An `AMBIGUOUS` result isn't a dead end: the query can carry an optional
+  `preferredSetId` (Phase 2C) so a caller who already knows which source
+  they want (e.g. a user picking one of two displayed literature values)
+  resolves directly to it instead of the resolver ever guessing between
+  them. It has no effect unless a genuine ambiguity exists to narrow.
 
 How a model requests and validates parameters hasn't changed since Phase
 1a: `ModelDefinition.requiredParameters: ModelParameterSpec[]` declares

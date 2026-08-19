@@ -28,11 +28,13 @@ import { REGULAR_SOLUTION_SCC0_MODEL_ID } from "./metadata.js";
 export function resolveRegularSolutionParameters(
   material: Material,
   conditions: Conditions,
+  options: { preferredSetId?: string } = {},
 ): ParameterResolutionResult {
   return resolveParameterSet({
     modelId: REGULAR_SOLUTION_SCC0_MODEL_ID,
     composition: material.composition,
     conditions,
     requiredKeys: ["W"],
+    preferredSetId: options.preferredSetId,
   });
 }
