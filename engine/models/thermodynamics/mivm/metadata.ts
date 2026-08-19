@@ -6,15 +6,17 @@ import type { ModelParameterSpec } from "../../ModelDefinition.js";
  * Descriptive metadata for the binary Molecular Interaction Volume Model
  * (MIVM) — molar excess Gibbs energy and activity coefficients.
  *
- * QUICK DISAMBIGUATION (two Tao-coauthored 2023 Metals papers are
- * involved and are easy to mix up — this happened once already during
- * review): this implementation is Source B (Hang & Tao, Metals
- * 2023,13,1773, doi:10.3390/met13101773). If you're looking at an
- * equation with a separate lambda_ij/lambda_ji term, that is Source A
- * (Wang/Chen/Tao, Metals 2023,13,996) — NOT what this file implements.
- * Source B's enthalpy term uses ln(B_ij)/ln(B_ji) directly, no lambda.
- * See docs/MIVM_MATHEMATICAL_AUDIT.md's §3.4 disambiguation table for
- * the full side-by-side comparison.
+ * Implemented convention: Hang & Tao, Metals 2023, 13, 1773, Eq. 13-14
+ * (doi:10.3390/met13101773). Do NOT substitute the superficially
+ * similar Wang, Chen & Tao, Metals 2023, 13, 996 equation
+ * (doi:10.3390/met13050996) — that paper uses the OPPOSITE B_ij/B_ji
+ * placement (its first volume term is B_ij, not B_ji) and a
+ * lambda_ij/lambda_ji-based enthalpy parametrization instead of the
+ * ln(B_ij)/ln(B_ji) form used here. The two papers are both
+ * Tao-coauthored 2023 Metals articles with similar titles and were
+ * genuinely swapped once during this project's own review — see
+ * docs/MIVM_MATHEMATICAL_AUDIT.md's §3.4 permanent identification
+ * table before changing anything below.
  *
  * ============================================================
  * PROVENANCE — READ BEFORE TRUSTING THIS MODEL FOR PUBLICATION

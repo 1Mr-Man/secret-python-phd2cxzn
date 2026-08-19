@@ -248,6 +248,18 @@ enthalpy term is written as `ln(B_ij)`/`ln(B_ji)` with no separate `λ`,
 you are looking at **Source B** — the one `engine/models/thermodynamics/
 mivm/model.ts` implements.
 
+**Permanent identification table** (name every source by full citation
+going forward, not by "Source A"/"Source B" alone — that shorthand is
+exactly what caused the mid-review mix-up this table exists to
+prevent):
+
+| | **Wang–Chen–Tao 2023** (*Metals* 13:996) | **Hang–Tao 2023** (*Metals* 13:1773) | **Implemented** |
+|---|---|---|---|
+| DOI | `10.3390/met13050996` | `10.3390/met13101773` | — |
+| Volume-term convention | first term `B_ij` | first term `B_ji` | `B_ji` |
+| Enthalpy parametrization | `λ_ij`, `λ_ji` | `ln(B_ij)`, `ln(B_ji)` | `ln(B)` |
+| Independent check | — | Supported by Oshakuade & Awe (2021), arXiv:2102.13199, §3.5 | Yes |
+
 Both papers independently cite Tao, D.P., *Thermochim. Acta* **2000**,
 *363*, 105–113 as the origin of MIVM (Wang/Chen/Tao's reference [23];
 Hang/Tao's reference [14] — identical DOI/journal/pages in both,
