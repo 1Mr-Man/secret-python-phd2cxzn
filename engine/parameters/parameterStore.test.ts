@@ -132,6 +132,151 @@ describe("parameter store", () => {
     });
   });
 
+  describe("registration-time validation (Phase 2D.1)", () => {
+    it("rejects a set containing an 'unavailable' parameter that carries a numeric value", () => {
+      expect(() =>
+        registerParameterSet(
+          exampleSet({
+            parameters: [
+              { key: "W", value: -1, unit: "J/mol", status: "unavailable", source: { kind: "estimated" } },
+            ],
+          }),
+        ),
+      ).toThrow(/unavailable/);
+    });
+
+    it("rejects a 'verified_direct' parameter with no verification record", () => {
+      expect(() =>
+        registerParameterSet(
+          exampleSet({
+            parameters: [
+              {
+                key: "W",
+                value: -1,
+                unit: "J/mol",
+                status: "verified_direct",
+                source: { kind: "literature", citation: "x" },
+              },
+            ],
+          }),
+        ),
+      ).toThrow(/verification/);
+    });
+
+    it("rejects a 'verified_derived' parameter with no derivation record", () => {
+      expect(() =>
+        registerParameterSet(
+          exampleSet({
+            parameters: [
+              {
+                key: "W",
+                value: -1,
+                unit: "J/mol",
+                status: "verified_derived",
+                source: { kind: "literature", citation: "x" },
+                verification: { method: "derived" },
+              },
+            ],
+          }),
+        ),
+      ).toThrow(/derivation/);
+    });
+
+    it("rejects a set whose compatibility is 'requires_explicit_transformation' but which contains a usable (non-unavailable) parameter", () => {
+      expect(() =>
+        registerParameterSet(
+          exampleSet({
+            compatibility: "requires_explicit_transformation",
+            parameters: [
+              {
+                key: "W",
+                value: -1,
+                unit: "J/mol",
+                status: "verified_direct",
+                source: { kind: "literature", citation: "x" },
+                verification: { method: "direct_read" },
+              },
+            ],
+          }),
+        ),
+      ).toThrow(/transformation/);
+    });
+
+    it("rejects a set whose compatibility is 'not_compatible' but which contains a usable parameter", () => {
+      expect(() =>
+        registerParameterSet(
+          exampleSet({
+            compatibility: "not_compatible",
+            parameters: [
+              { key: "W", value: -1, unit: "J/mol", status: "provisional", source: { kind: "estimated" } },
+            ],
+          }),
+        ),
+      ).toThrow();
+    });
+
+    it("rejects a literature-sourced parameter with no citation", () => {
+      expect(() =>
+        registerParameterSet(
+          exampleSet({
+            parameters: [
+              { key: "W", value: -1, unit: "J/mol", status: "provisional", source: { kind: "literature" } },
+            ],
+          }),
+        ),
+      ).toThrow(/citation/);
+    });
+
+    it("rejects a parameter-level compatibility override that is less restrictive than the set's authoritative compatibility", () => {
+      expect(() =>
+        registerParameterSet(
+          exampleSet({
+            compatibility: "not_compatible",
+            parameters: [
+              { key: "W", unit: "J/mol", status: "unavailable", source: { kind: "estimated" }, compatibility: "directly_compatible" },
+            ],
+          }),
+        ),
+      ).toThrow();
+    });
+
+    it("does not partially register a set that fails validation — a rejected set is entirely absent from the store", () => {
+      expect(() =>
+        registerParameterSet(
+          exampleSet({
+            setId: "should-never-appear",
+            parameters: [
+              { key: "W", value: -1, unit: "J/mol", status: "unavailable", source: { kind: "estimated" } },
+            ],
+          }),
+        ),
+      ).toThrow();
+      expect(findAllParameterSets("test.example-model", "Xx-Yy")).toEqual([]);
+    });
+
+    it("still accepts well-formed data (provisional, unavailable, and fully-verified) exactly as before", () => {
+      expect(() => registerParameterSet(exampleSet())).not.toThrow();
+      expect(
+        () =>
+          registerParameterSet(
+            exampleSet({
+              setId: "verified-example",
+              parameters: [
+                {
+                  key: "W",
+                  value: -1,
+                  unit: "J/mol",
+                  status: "verified_direct",
+                  source: { kind: "literature", citation: "x" },
+                  verification: { method: "direct_read" },
+                },
+              ],
+            }),
+          ),
+      ).not.toThrow();
+    });
+  });
+
   describe("canonical system identity at the store layer", () => {
     it("registering under one component order is found under the reversed order", () => {
       registerParameterSet(exampleSet({ system: "Yy-Xx" }));

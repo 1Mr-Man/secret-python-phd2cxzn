@@ -1,4 +1,5 @@
 import { canonicalizeSystemLabel } from "../core/SystemIdentity.js";
+import { validateParameterSet } from "./validateParameterRecord.js";
 import type { ParameterSet } from "./types.js";
 
 /**
@@ -32,8 +33,27 @@ function key(modelId: string, system: string): string {
   return `${modelId}::${canonicalizeSystemLabel(system)}`;
 }
 
-/** Throws if a set with the same setId is already registered under this (modelId, system) key — registration is additive, not silently overwriting. */
+/**
+ * Throws if `set` fails structural validation (Phase 2D.1 — see
+ * validateParameterRecord.ts for the full rule set: an "unavailable"
+ * parameter can't carry a value, a "verified_*" parameter must carry the
+ * matching verification/derivation record, a transformation-blocked or
+ * incompatible set can't contain a usable value, and so on), or if a set
+ * with the same setId is already registered under this (modelId, system)
+ * key. Validation runs BEFORE the duplicate-setId check and before
+ * anything is written to `store`, so a rejected set never partially
+ * enters the store: registration is all-or-nothing, and no caller can
+ * observe a set that violates its own stated status/compatibility.
+ */
 export function registerParameterSet(set: ParameterSet): void {
+  const validation = validateParameterSet(set);
+  if (!validation.valid) {
+    throw new Error(
+      `Cannot register parameter set "${set.setId}": it fails structural validation (${validation.issues.length} issue(s)): ` +
+        validation.issues.map((issue) => `${issue.path}: ${issue.message}`).join("; "),
+    );
+  }
+
   const mapKey = key(set.modelId, set.system);
   const existing = store.get(mapKey) ?? [];
 

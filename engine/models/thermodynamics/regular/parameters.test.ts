@@ -22,6 +22,7 @@ function fixtureWSet(overrides: Partial<ParameterSet> = {}): ParameterSet {
         unit: "J/mol",
         status: "verified_direct",
         source: { kind: "literature", citation: "synthetic test fixture, not a real publication" },
+        verification: { method: "direct_read" },
       },
     ],
     ...overrides,
@@ -70,7 +71,16 @@ describe("resolveRegularSolutionParameters", () => {
     registerParameterSet(
       fixtureWSet({
         setId: "source-b",
-        parameters: [{ key: "W", value: -18000, unit: "J/mol", status: "verified_direct", source: { kind: "literature" } }],
+        parameters: [
+          {
+            key: "W",
+            value: -18000,
+            unit: "J/mol",
+            status: "verified_direct",
+            source: { kind: "literature", citation: "synthetic test fixture, not a real publication" },
+            verification: { method: "direct_read" },
+          },
+        ],
       }),
     );
     const result = resolveRegularSolutionParameters(material, conditions);
