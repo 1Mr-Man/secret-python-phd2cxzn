@@ -108,6 +108,13 @@ export type { MivmBinaryResult } from "./models/thermodynamics/mivm/index.js";
 
 export { ENGINE_VERSION } from "./version.js";
 
+// Phase 5A — pure, model-independent thermodynamic-quantity utilities.
+// Not ModelDefinitions: no modelId, not run through CalculationPipeline.
+// See the Phase 5 audit for scope/formulation and the remaining deferred
+// utilities (activity, chemical potential, mixing enthalpy/Gibbs energy,
+// interaction matrix — not yet implemented).
+export { idealMixingEntropy } from "./thermodynamics/mixingEntropy.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)
