@@ -155,6 +155,14 @@ export { normalStrainComponents, tensorialShearStrainComponents } from "./mechan
 export { engineeringShearStrain } from "./mechanics/engineeringShearStrain.js";
 export { volumetricStrainFromTensor } from "./mechanics/volumetricStrainFromTensor.js";
 
+// Phase 6C — principal strains (eigenvalues of the strain tensor), via
+// the closed-form analytic trigonometric method for a real symmetric
+// 3x3 matrix (Smith 1961) — not an iterative solver. Eigenvalues only,
+// ordered epsilon1>=epsilon2>=epsilon3; no eigenvectors, no von Mises/
+// equivalent strain, no generic matrix module — see the Phase 6C audit.
+export type { PrincipalStrains } from "./mechanics/principalStrains.js";
+export { principalStrains } from "./mechanics/principalStrains.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)
