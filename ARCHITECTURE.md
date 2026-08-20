@@ -1,9 +1,21 @@
 # Architecture: UI ↔ Engine boundary
 
-This document explains how the page (`index.html` + `app/`) talks to the
-calculation engine (`engine/`), and why the boundary between them is drawn
-where it is. For the engine's own internals (core types, the model plugin
-contract, the calculation pipeline), see `engine/README.md`.
+This document explains how the UI talks to the calculation engine
+(`engine/`), and why the boundary between them is drawn where it is. Since
+Phase 3 there are **two** pages, both built the same way (plain HTML +
+vanilla TS, no framework) and both importing only from `engine/index.ts`:
+
+- `index.html` + `app/main.ts`/`app/qcAdapter.ts` — the original,
+  single-model Au-Cu Quasi-Chemical calculator (Phase 1b). Unchanged by
+  every phase since — see "What Phase 3 intentionally did not change"
+  below.
+- `workbench.html` + `app/workbench/*` — the generic Materials Physics
+  Workbench (Phase 3), which can drive *any* registered model against
+  *any* material system. See "Request → response flow for the generic
+  Workbench page" below.
+
+For the engine's own internals (core types, the model plugin contract, the
+calculation pipeline), see `engine/README.md`.
 
 ## The dependency rule
 
@@ -19,9 +31,12 @@ engine/{core,models,pipeline}/*
 
 `app/` may only import from `engine/index.ts` — never reach into
 `engine/core/*`, `engine/models/*`, or `engine/pipeline/*` directly. This
-is enforced by convention today (Phase 1b has one screen and one file that
-imports the engine — `app/qcAdapter.ts`), not by a lint rule yet; keep it
-that way as more screens are added.
+is enforced by convention (not a lint rule yet): every file under `app/`
+that imports the engine — `app/qcAdapter.ts` (classic calculator) and,
+since Phase 3, several files under `app/workbench/` (`main.ts`,
+`materialForm.ts`, `modelPicker.ts`, `parameterForm.ts`,
+`conditionsForm.ts`, `resultsPanel.ts`) — imports exclusively from
+`engine/index.ts`. Keep it that way as more screens are added.
 
 The reverse import — `engine/` depending on anything in `app/`, the DOM,
 or a UI framework — must never happen. `engine/` has no dependency on
@@ -81,6 +96,58 @@ produces from them. That indirection is the "UI result adapter" layer:
 it's the one place that knows both "what the engine returns" and "what
 this screen needs to render," so neither side has to know about the
 other's shape.
+
+## Request → response flow for the generic Workbench page
+
+```
+workbench.html : Material System / Model / Conditions / Parameters cards
+        │  built by
+        ▼
+app/workbench/materialForm.ts, modelPicker.ts, conditionsForm.ts, parameterForm.ts
+        │  each collects its own piece: Composition, ModelDefinition,
+        │  Conditions, Record<string, number>
+        ▼
+app/workbench/main.ts : calculate() / sweepComposition()
+        │  assembles a CalculationRequest from those pieces, passes it to
+        ▼
+engine/index.ts : runCalculation(request) / runCompositionSweep(request)
+        │  (the exact same pipeline the classic calculator uses — see
+        │   above; nothing engine-side is Workbench-specific)
+        ▼
+engine : CalculationResult / CompositionSweepResult
+        │  rendered generically by
+        ▼
+app/workbench/resultsPanel.ts (values table + "Model & Assumptions" box,
+driven entirely by result.outputProperties/equations/assumptions/
+references/parameterProvenance — no per-model knowledge)
+app/workbench/chart.ts (one selected output property plotted at a time —
+see "Why the chart only ever plots one property" below)
+app/workbench/csvExport.ts / csvImport.ts
+        │  write to
+        ▼
+workbench.html : #results-panel, #workbench-chart, #csv-import-result
+```
+
+Unlike `app/qcAdapter.ts` (which knows it's building a Quasi-Chemical
+request for Au-Cu specifically), `app/workbench/main.ts` has **no
+per-model or per-system knowledge**: `selectedModel.id`,
+`selectedModel.requiredParameters`, `selectedModel.outputProperties`, and
+the user-built `Composition` are the only things it ever reads to build a
+request or render a result. Adding a new model to `engine/models/index.ts`
+makes it appear in the Workbench's model picker automatically — nothing in
+`app/workbench/*` needs to change.
+
+### Why the chart only ever plots one property
+
+`app/workbench/main.ts`'s `sweepComposition()` reads a single selected
+output-property id from `#chart-property-select` and draws exactly that
+one series. This was a deliberate Phase 4 fix, not the original Phase 3
+behavior: plotting every one of a model's `outputProperties` together
+would mix units on one Y-axis (e.g. MIVM's `GmE` in J/mol alongside five
+dimensionless activity-coefficient ratios) — scientifically meaningless,
+not just visually messy. CSV export is unaffected by this: it still
+exports every output property as a column, which is correct for a data
+table in a way it wouldn't be for a chart.
 
 ## Where UI formatting happens
 
@@ -177,3 +244,46 @@ narrower within the engine than Phase 2A:
   system today still returns `NOT_FOUND` — that's the correct, tested
   behavior, not a gap to paper over before it's backed by a citable
   source.
+
+## What Phase 3 intentionally did not change
+
+Phase 3 (the generic Workbench, `workbench.html` + `app/workbench/*` —
+see "Request → response flow for the generic Workbench page" above) is
+purely additive:
+
+- `index.html`, `app/main.ts`, and `app/qcAdapter.ts` are byte-for-byte
+  unchanged (one exception: a single `<a href="/workbench.html">` nav
+  link added to `index.html`'s subtitle — outside every DOM id
+  `app/main.test.ts` asserts on). The classic calculator's 282 tests and
+  golden values were re-verified unaffected.
+- No engine file changed. `Material.ts`, `Conditions.ts`,
+  `ModelDefinition.ts`, `registry.ts`, `CalculationPipeline.ts`,
+  `CompositionSweep.ts`, and `ModelComparison.ts` were already fully
+  domain/model-agnostic before Phase 3 — the gap Phase 3 closed was
+  entirely in the application layer, not the engine.
+- `engine/data/elements.ts` gained 8 more elements (Fe, Ni, Co, Cr, Mn,
+  Al, Zn, Ti) alongside Au/Cu — identity/atomic-mass data, not model
+  parameters, so this didn't need the literature-audit discipline that
+  governs `ParameterSet` records.
+
+## What Phase 4 intentionally did not change
+
+Phase 4 (foundation cleanup: unit conversion, the chart's one-property-at-
+a-time fix, CSV import, docs, CI, configurable sweep bounds, a Workbench
+`init()` idempotency fix) touched only `engine/core/UnitConversion.ts`
+(new), `engine/index.ts` (barrel export), `engine/core/Units.ts` (a
+doc-comment update, no shape change), `app/workbench/*`, `workbench.html`,
+this file, `engine/README.md`, the root `README.md`, and
+`.github/workflows/ci.yml`:
+
+- No existing model's equation, `metadata.ts` unit string, or
+  `PhysicalConstants.GAS_CONSTANT_R` value changed — `UnitConversion.ts`
+  is opt-in and not wired into `CalculationPipeline.ts`.
+- `index.html`, `app/main.ts`, and `app/qcAdapter.ts` remain untouched
+  from Phase 3.
+- New general thermodynamic-quantity calculators (mixing entropy/
+  enthalpy/Gibbs energy/chemical potential/activity, a multicomponent
+  interaction matrix) were deliberately deferred to their own future
+  phase, matching the precedent every other model in this repo followed
+  (its own dedicated, audited phase) rather than being folded into a
+  foundation-infrastructure phase.

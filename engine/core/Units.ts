@@ -1,8 +1,10 @@
 /**
- * Units are carried as plain string labels rather than converted at runtime.
- * Phase 1a does not implement unit conversion — every model is responsible
- * for stating the unit its inputs/outputs are already in. A conversion layer
- * can be introduced later without changing this shape.
+ * Units are carried as plain string labels on `PhysicalQuantity` itself —
+ * every model is responsible for stating the unit its inputs/outputs are
+ * already in; nothing here auto-converts. Real runtime conversion between
+ * compatible units now exists, in `UnitConversion.ts` (`convert()` /
+ * `convertQuantity()`) — a separate, opt-in module so this file's shape
+ * (and every existing model's unit strings) never had to change to get it.
  */
 
 /** Known unit symbols used by models shipped so far, plus an open extension point. */

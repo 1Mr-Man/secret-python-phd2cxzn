@@ -14,8 +14,14 @@ real data) parameter database architecture: canonical system identity
 (Au-Cu and Cu-Au resolve to the same entry), a multi-set store, and a
 resolver returning one of five explicit states (FOUND / NOT_FOUND /
 OUT_OF_RANGE / PROVISIONAL / AMBIGUOUS) instead of ever guessing — see
-"Parameter architecture" below. No UI, charts, database, or
-authentication live in `engine/` itself: this directory has zero
+"Parameter architecture" below. Phase 2E-A/B added a fourth model, MIVM
+(binary; production Au-Cu parameter data still unavailable — see "What's
+deliberately not here" below). Phase 3 added `app/workbench/*` +
+`workbench.html`, a generic UI driving any registered model against any
+material system, alongside (not replacing) the original Au-Cu calculator
+— see `../ARCHITECTURE.md`. Phase 4 added real unit conversion
+(`core/UnitConversion.ts`) as an opt-in module. No UI, charts, database,
+or authentication live in `engine/` itself: this directory has zero
 dependency on the DOM, React, or any browser API, by design.
 
 ## Why this exists
@@ -91,8 +97,8 @@ depend on `core/*`; `pipeline/*` depends on `core/*` and
 
 ## The calculation pipeline
 
-Every model — today's Quasi-Chemical, tomorrow's Ideal Solution, Regular
-Solution, MIVM, CALPHAD, Self-Association, or a magnetic/surface/optical
+Every model — today's Ideal Solution, Regular Solution, Quasi-Chemical, and
+MIVM, or a future CALPHAD, Self-Association, or magnetic/surface/optical
 model — runs through the same seven steps in `runCalculation()`:
 
 ```
@@ -113,8 +119,9 @@ inside the pipeline, that logic belongs in the model's `validate` or
 
 ## Adding a new model
 
-Adding MIVM, CALPHAD, or any other model never touches the pipeline or the
-registry's internals. The steps are:
+Adding CALPHAD, Self-Association, or any other model never touches the
+pipeline or the registry's internals — MIVM (below) was added this way
+without changing any of the files this section describes. The steps are:
 
 1. Create `engine/models/<category>/<model-id>/`.
 2. Write `metadata.ts`: id, name, domain, output properties, required
@@ -524,6 +531,15 @@ entry says plainly that it's an engine-internal derivation, not a citation
 
 ## What's deliberately not here (through Phase 2D)
 
+> **Update, Phase 2E-B onward:** this section is a dated snapshot — read
+> its heading. Since Phase 2D, MIVM was implemented (Phase 2E-B; binary,
+> tests passing — see the MIVM bullet below for what's still genuinely
+> missing), the generic Workbench UI was added (Phase 3, `workbench.html`
+> + `app/workbench/*` — see `ARCHITECTURE.md`), and real unit conversion
+> was added (Phase 4, `core/UnitConversion.ts` — see the unit-conversion
+> bullet below). Everything else in this list is still accurate as of
+> Phase 4. Don't re-implement anything this note already says is done.
+
 - Any UI, chart, form, or DOM code — the engine has zero dependency on
   React, the DOM, or any browser API. No phase through 2D has touched
   `app/` or `index.html`.
@@ -566,19 +582,31 @@ entry says plainly that it's an engine-internal derivation, not a citation
   `CalculationRequest`) rather than wired into the pipeline itself — see
   "Resolver integration: Regular Solution and Quasi-Chemical" above for
   why this was the lower-risk design.
-- **MIVM, CALPHAD, and Self-Association models** — not implemented. Each
-  needs its own equation identified/derived and verified the way Regular
-  Solution was in Phase 2A, which both phases' briefs explicitly deferred
-  to a separate, dedicated phase per model. When built, each gets a
-  parameter architecture for free: `ParameterSet`/`ParameterValue` and
-  `resolveParameterSet()` are already generic over `modelId` — a MIVM
-  model registers its own parameter sets under its own model id and calls
-  `resolveParameterSet({ modelId: MIVM_MODEL_ID, ... })` exactly the way
-  Regular Solution's wrapper does, with no changes to `types.ts`,
-  `parameterStore.ts`, or `resolve.ts`. Use the standard spelling
-  "CALPHAD" (CALculation of PHAse Diagrams) when that model is built — it
-  names a specific, well-established computational thermodynamics
-  methodology, not a similarly-named approximation.
+- **MIVM** — **implemented since Phase 2E-B** (`engine/models/thermodynamics/mivm/`,
+  binary, Hang & Tao (2023) convention — see that model's `metadata.ts`
+  header and `docs/MIVM_MATHEMATICAL_AUDIT.md` for the full derivation and
+  source-disambiguation trail). What's still genuinely missing is
+  **production parameter data**: no verified Au-Cu `B_ij`/`B_ji`/`Z_i`/
+  `Z_j`/`V_mi`/`V_mj` values exist anywhere in `engine/data/parameterSets/`
+  — `resolveMivmParameters()` correctly returns `NOT_FOUND` for every
+  system, and the Phase 2E-C/C2/C3/C3.1 audit trail (`docs/`) documents
+  exactly why every candidate source found so far didn't clear this
+  project's provenance bar. Do not add a numeric MIVM value without
+  reading that audit trail first.
+- **CALPHAD and Self-Association models** — not implemented. Each needs
+  its own equation identified/derived and verified the way Regular
+  Solution was in Phase 2A and MIVM was in Phase 2E-A/B, which every phase
+  building a new model has explicitly deferred to its own dedicated phase.
+  When built, each gets a parameter architecture for free:
+  `ParameterSet`/`ParameterValue` and `resolveParameterSet()` are already
+  generic over `modelId` — a new model registers its own parameter sets
+  under its own model id and calls `resolveParameterSet({ modelId:
+  NEW_MODEL_ID, ... })` exactly the way Regular Solution's and MIVM's
+  wrappers do, with no changes to `types.ts`, `parameterStore.ts`, or
+  `resolve.ts`. Use the standard spelling "CALPHAD" (CALculation of PHAse
+  Diagrams) when that model is built — it names a specific,
+  well-established computational thermodynamics methodology, not a
+  similarly-named approximation.
 - **Magnetic, optical, electrical, structural, surface, and linear-strain
   properties** — none implemented. The `PropertyDomain` union
   (`core/Property.ts`) already lists these domains and `ModelDefinition`
@@ -593,10 +621,20 @@ entry says plainly that it's an engine-internal derivation, not a citation
   and, likely, new `Element` parameter groups (`core/Element.ts` already
   has empty `magnetic`/`optical`/`electrical`/`structural`/`surface`
   groups reserved for exactly this).
-- Ternary/multicomponent support in any of the three current models — the
-  core types (`classifySystem`, n-component `composition()`,
-  `CompositionSweep`'s generic `compositionAt`) already handle it, but
-  each model's `validate()` intentionally restricts itself to binary,
-  matching what each model's equation, as established, actually
-  describes.
-- Unit conversion — units are carried as labels, not converted.
+- Ternary/multicomponent support in any current model (Ideal, Regular,
+  Quasi-Chemical, MIVM — all binary-only) — the core types
+  (`classifySystem`, n-component `composition()`, `CompositionSweep`'s
+  generic `compositionAt`) already handle an n-component `Composition`,
+  and the Workbench's Material System builder (Phase 3) can construct one,
+  but each model's `validate()` intentionally restricts itself to binary,
+  matching what each model's equation, as established, actually describes.
+  A ternary composition run against any of them correctly surfaces that
+  model's own "requires exactly 2 components" validation error — that's
+  the honest current behavior, not a bug to route around.
+- ~~Unit conversion — units are carried as labels, not converted.~~
+  **Added in Phase 4**: `core/UnitConversion.ts` (`convert()` /
+  `convertQuantity()`), a registry-based converter for the unit families
+  the project's models/Conditions actually use plus the near-term ones
+  strain/magnetism/electrical will need. It's opt-in — no existing
+  model's `quantity()` call site or unit string changed, and it isn't
+  wired into `CalculationPipeline.ts`.

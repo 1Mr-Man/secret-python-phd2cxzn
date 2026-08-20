@@ -78,11 +78,48 @@
     #material-form input { width: 100px; display: inline-block; }
 
     #conditions-form > div,
-    #parameter-form > div {
+    #parameter-form > div,
+    #sweep-controls > div {
       display: inline-block;
       width: 220px;
       margin: 0 15px 15px 0;
       vertical-align: top;
+    }
+
+    #chart-property-select { width: auto; display: inline-block; margin-left: 10px; }
+
+    #csv-import-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 14px;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    #csv-import-result table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    #csv-import-result td, #csv-import-result th {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+
+    #csv-import-result th { background: #eee; }
+
+    #csv-import-result .issues {
+      background: #fff8e1;
+      border: 1px solid #ffe0a3;
+      border-radius: 6px;
+      padding: 10px 15px;
+      margin-top: 10px;
     }
 
     button {
@@ -177,6 +214,24 @@
   </div>
 
   <div class="card">
+    <h2>Sweep Range (composition, binary only)</h2>
+    <div id="sweep-controls">
+      <div>
+        <label for="sweep-start">Start (x)</label>
+        <input id="sweep-start" type="number" step="any" min="0" max="1" value="0">
+      </div>
+      <div>
+        <label for="sweep-end">End (x)</label>
+        <input id="sweep-end" type="number" step="any" min="0" max="1" value="1">
+      </div>
+      <div>
+        <label for="sweep-step">Step</label>
+        <input id="sweep-step" type="number" step="any" min="0" value="0.1">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <button id="calculate-button" type="button">Calculate</button>
     <button id="sweep-button" type="button">Sweep Composition (binary only)</button>
     <button id="export-csv" type="button" disabled>Export Sweep as CSV</button>
@@ -189,7 +244,19 @@
 
   <div class="card">
     <h2>Composition Sweep Chart</h2>
+    <div>
+      <label for="chart-property-select">Plot property</label>
+      <select id="chart-property-select"></select>
+    </div>
     <canvas id="workbench-chart" width="900" height="500"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Import Data (CSV)</h2>
+    <p>Paste CSV text (first row = column headers) to parse it into a table — for inspecting experimental/theoretical data alongside a calculation. Not yet wired into regression/curve-fitting.</p>
+    <textarea id="csv-import-input" rows="6" placeholder="x,Scc0&#10;0.1,0.07&#10;0.2,0.09"></textarea>
+    <button id="csv-import-button" type="button">Parse CSV</button>
+    <div id="csv-import-result"></div>
   </div>
 
 </div>

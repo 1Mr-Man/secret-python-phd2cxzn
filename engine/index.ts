@@ -29,6 +29,9 @@ export { validateConditions } from "./core/Conditions.js";
 export type { PhysicalQuantity, UnitSymbol } from "./core/Units.js";
 export { KNOWN_UNITS, quantity } from "./core/Units.js";
 
+export type { UnitFamily } from "./core/UnitConversion.js";
+export { convert, convertQuantity } from "./core/UnitConversion.js";
+
 export { PhysicalConstants } from "./core/Constants.js";
 
 export type { EngineErrorCode } from "./core/Errors.js";
