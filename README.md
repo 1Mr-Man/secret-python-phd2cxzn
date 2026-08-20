@@ -45,13 +45,19 @@ full UI ↔ engine boundary and request/response flow for each page.
   families in active use plus the near-term ones strain/magnetism/
   electrical models will need — opt-in, not applied automatically to any
   model's inputs/outputs.
-- **Pure thermodynamic-quantity utilities** (`engine/thermodynamics/`):
-  ideal mixing entropy, activity, ideal mixing Gibbs energy, a
-  multicomponent pairwise interaction matrix + regular-solution mixing
-  enthalpy, relative chemical potential, and total mixing Gibbs energy —
-  model-independent functions, not `ModelDefinition`s, composable with the
-  four models above at the call site. See
-  [`engine/README.md`](engine/README.md#thermodynamic-utilities-phase-5).
+- **Pure, model-independent calculation utilities** — not
+  `ModelDefinition`s, composable with the four models above at the call
+  site, callable through `engine/index.ts` but not wired into the UI:
+  - `engine/thermodynamics/`: ideal mixing entropy, activity, ideal
+    mixing Gibbs energy, a multicomponent pairwise interaction matrix +
+    regular-solution mixing enthalpy, relative chemical potential, and
+    total mixing Gibbs energy. See
+    [`engine/README.md`](engine/README.md#thermodynamic-utilities-phase-5).
+  - `engine/mechanics/`: scalar strain/stress/moduli utilities, a 3x3
+    strain tensor (construction, validation, and the explicit
+    tensorial-to-engineering shear conversion), principal strains (a
+    closed-form eigensolver), and the von Mises equivalent strain. See
+    [`engine/README.md`](engine/README.md#scalar-and-tensor-mechanics-utilities-phase-6).
 - **A parameter-provenance architecture** (`engine/parameters/`): every
   parameter record is typed `verified_direct` / `verified_derived` /
   `provisional` / `unavailable`, and the resolver returns an explicit
@@ -76,11 +82,16 @@ that research, not a gap to paper over.**
 
 - No CALPHAD or Self-Association models yet — deferred to their own
   dedicated, audited phases (see `engine/README.md`).
-- No model exists yet for the magnetic, structural, surface, optical,
-  electrical, or mechanical-strain property domains — `PropertyDomain`
-  (`engine/core/Property.ts`) and `Conditions` (`engine/core/Conditions.ts`,
-  already carrying `strain`/`magneticFieldTeslas`/`electricFieldVPerM`)
-  are ready for them; no model has been built and audited yet.
+- No `ModelDefinition` (registered, pipeline-runnable model) exists yet
+  for the magnetic, structural, surface, optical, electrical, or
+  mechanical-strain property domains. Mechanical is the one exception
+  with real code: `engine/mechanics/` (above) has pure scalar/tensor
+  utilities, but nothing in the `mechanical_strain` domain is
+  resolvable through `runCalculation()`/the registry/comparison/sweep
+  machinery. `PropertyDomain` (`engine/core/Property.ts`) and
+  `Conditions` (`engine/core/Conditions.ts`, already carrying
+  `strain`/`magneticFieldTeslas`/`electricFieldVPerM`) are ready for a
+  model in any of these domains; none has been built and audited yet.
 - No verified MIVM Au-Cu parameter data (`B_ij`, `B_ji`, `Z_i`, `Z_j`,
   `V_mi`, `V_mj`) — every candidate source investigated so far didn't
   clear this project's provenance bar; see `docs/MIVM_PHASE_2E-C*.md`.

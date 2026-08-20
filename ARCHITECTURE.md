@@ -304,3 +304,32 @@ equations) — and is engine-only, touching no file this document describes:
   `engine/data/parameterSets/` changed. The new utilities are not
   `ModelDefinition`s: they carry no `modelId` and never run through the
   pipeline.
+
+## What Phase 6 intentionally did not change
+
+Phase 6 added `engine/mechanics/` across four individually-audited sub-
+phases (6A scalar utilities, 6B a 3x3 strain tensor, 6C principal
+strains, 6D von Mises equivalent strain — see `engine/README.md`'s
+"Scalar and tensor mechanics utilities (Phase 6)" section for the full
+list and their equations) and, like Phase 5, is engine-only:
+
+- `index.html`, `app/main.ts`, `app/qcAdapter.ts`, `workbench.html`, and
+  every file under `app/workbench/*` are byte-for-byte unchanged. None
+  of the Phase 6 utilities are wired into either page — they're callable
+  through `engine/index.ts` but nothing in the UI imports them.
+- `engine/core/Conditions.ts` is unchanged: `StrainState`'s existing
+  `{kind:"tensor", components: number[][]}` shape already had enough
+  flexibility to hold a validated 3x3 tensor without a type change —
+  3x3-ness and symmetry are enforced at runtime by 6B's
+  `validateStrainTensor()` instead.
+- No existing model, `CalculationPipeline.ts`, the parameter-provenance
+  architecture, `engine/data/parameterSets/`, or Phase 5's
+  `engine/thermodynamics/` changed. The Phase 6 utilities are not
+  `ModelDefinition`s either: no `modelId`, never run through the
+  pipeline, and no file from an earlier 6-series sub-phase was
+  re-modified by a later one (verified per-file via `git log`).
+- Deliberately deferred, not built: eigenvectors/principal directions,
+  von Mises *stress*, yield strength/yield criteria, stress-strain
+  curves, plasticity, composition-dependent mechanical models, and any
+  mechanical material data (`core/Element.ts`'s `StructuralParameters`
+  is unchanged) — see each sub-phase's own audit for why.
