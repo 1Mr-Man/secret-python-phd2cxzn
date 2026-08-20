@@ -163,6 +163,14 @@ export { volumetricStrainFromTensor } from "./mechanics/volumetricStrainFromTens
 export type { PrincipalStrains } from "./mechanics/principalStrains.js";
 export { principalStrains } from "./mechanics/principalStrains.js";
 
+// Phase 6D — von Mises equivalent strain: a single-state distortional-
+// strain scalar computed directly from StrainTensor's tensorial
+// components (never via principalStrains() or engineeringShearStrain()).
+// NOT a von Mises stress, yield criterion, or the path-dependent
+// accumulated equivalent plastic strain of flow-plasticity theory — see
+// the Phase 6D audit.
+export { equivalentStrain } from "./mechanics/equivalentStrain.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)
