@@ -171,6 +171,15 @@ export { principalStrains } from "./mechanics/principalStrains.js";
 // the Phase 6D audit.
 export { equivalentStrain } from "./mechanics/equivalentStrain.js";
 
+// Phase 7A — pure, model-independent magnetic utilities. Same contract
+// as Phase 5/6: no modelId, not run through CalculationPipeline, no UI
+// wiring, no element magnetic data. Conditions.magneticFieldTeslas is
+// locked as B (flux density), never H (field strength) — see the Phase
+// 7A audit. None of these three utilities call each other internally.
+export { curieWeissSusceptibility } from "./magnetic/curieWeissSusceptibility.js";
+export { magneticFluxDensity } from "./magnetic/magneticFluxDensity.js";
+export { linearMagnetization } from "./magnetic/linearMagnetization.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)
