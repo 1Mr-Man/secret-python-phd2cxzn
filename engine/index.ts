@@ -110,10 +110,8 @@ export { ENGINE_VERSION } from "./version.js";
 
 // Phase 5 — pure, model-independent thermodynamic-quantity utilities.
 // Not ModelDefinitions: no modelId, not run through CalculationPipeline.
-// See the Phase 5 audit for scope/formulation and the remaining deferred
-// utility (the total-Gibbs-mixing-energy combinator ΔG_mix =
-// ΔG_mix^ideal + G^E — idealMixingGibbsEnergy below is only the ideal
-// piece — not yet implemented).
+// See the Phase 5 audit for scope/formulation — Phase 5 is now complete
+// (5A-5F).
 export { idealMixingEntropy } from "./thermodynamics/mixingEntropy.js";
 export { activity } from "./thermodynamics/activity.js";
 export { idealMixingGibbsEnergy } from "./thermodynamics/idealMixingGibbsEnergy.js";
@@ -126,6 +124,7 @@ export {
 } from "./thermodynamics/interactionMatrix.js";
 export { regularSolutionMixingEnthalpy } from "./thermodynamics/mixingEnthalpy.js";
 export { relativeChemicalPotential } from "./thermodynamics/chemicalPotential.js";
+export { totalMixingGibbsEnergy } from "./thermodynamics/totalMixingGibbsEnergy.js";
 
 export * as elements from "./data/elements.js";
 
