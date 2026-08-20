@@ -141,6 +141,20 @@ export { shearModulus } from "./mechanics/shearModulus.js";
 export { bulkModulus } from "./mechanics/bulkModulus.js";
 export { poissonsRatio } from "./mechanics/poissonsRatio.js";
 
+// Phase 6B — 3x3 strain tensor: construction, structural validation
+// (shape/finiteness/symmetry), component extraction, and the explicit
+// tensorial->engineering shear conversion. Stores TENSORIAL shear strain
+// (ε_ij), never engineering shear strain (γ_ij=2ε_ij) — always convert
+// via engineeringShearStrain() before using an off-diagonal component in
+// an engineering formula (e.g. shearModulus() above). Principal strains/
+// eigenvalues and von Mises/equivalent strain are deliberately deferred
+// — see the Phase 6B audit.
+export type { StrainTensor } from "./mechanics/strainTensor.js";
+export { createStrainTensor, validateStrainTensor } from "./mechanics/strainTensor.js";
+export { normalStrainComponents, tensorialShearStrainComponents } from "./mechanics/strainTensorComponents.js";
+export { engineeringShearStrain } from "./mechanics/engineeringShearStrain.js";
+export { volumetricStrainFromTensor } from "./mechanics/volumetricStrainFromTensor.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)
