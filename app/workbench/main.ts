@@ -24,6 +24,7 @@ import { drawLineChart } from "./chart.js";
 import type { ConditionsFormHandle } from "./conditionsForm.js";
 import { mountConditionsForm } from "./conditionsForm.js";
 import { downloadCsv, toCsv } from "./csvExport.js";
+import { parseCsv, type CsvParseResult } from "./csvImport.js";
 import { buildMaterialResult, mountMaterialForm, type MaterialFormRow } from "./materialForm.js";
 import { mountModelPicker } from "./modelPicker.js";
 import type { ParameterFormHandle } from "./parameterForm.js";
@@ -35,7 +36,7 @@ const DEFAULT_ROWS: MaterialFormRow[] = [
   { symbol: "Cu", fraction: 0.5 },
 ];
 
-const CHART_COLORS = ["#008080", "#c05621", "#5a5adb", "#0a7a4a", "#a0355a"];
+const CHART_COLOR = "#008080";
 
 let selectedModel: ModelDefinition;
 let conditionsFormHandle: ConditionsFormHandle;
@@ -68,6 +69,25 @@ function renderConditionsAndParametersFor(model: ModelDefinition, initialParamet
     initialValues: fieldKeys.includes("temperatureK") ? { temperatureK: 1550 } : {},
   });
   parameterFormHandle = mountParameterForm(byId("parameter-form"), model.requiredParameters, initialParameterValues);
+}
+
+/**
+ * Repopulates the "plot property" selector from the given model's own
+ * outputProperties. The chart only ever plots ONE property at a time (see
+ * sweepComposition below) — a model like MIVM has outputs spanning
+ * different units (GmE in J/mol vs. five dimensionless ratios), and mixing
+ * them on one Y-axis would be a scientifically meaningless chart, not
+ * just an ugly one.
+ */
+function renderChartPropertySelectFor(model: ModelDefinition): void {
+  const select = byId<HTMLSelectElement>("chart-property-select");
+  select.innerHTML = "";
+  for (const property of model.outputProperties) {
+    const option = document.createElement("option");
+    option.value = property.id;
+    option.textContent = `${property.name} (${property.unit})`;
+    select.appendChild(option);
+  }
 }
 
 /** Validates the current material rows and returns a Composition, or shows the validation error and returns null. */
@@ -109,11 +129,15 @@ export function sweepComposition(): void {
   const componentA = composition.components[0]!;
   const componentB = composition.components[1]!;
 
+  const start = Number(byId<HTMLInputElement>("sweep-start").value);
+  const end = Number(byId<HTMLInputElement>("sweep-end").value);
+  const step = Number(byId<HTMLInputElement>("sweep-step").value);
+
   try {
     const sweep = runCompositionSweep({
-      start: 0,
-      end: 1,
-      step: 0.1,
+      start,
+      end,
+      step,
       modelId: selectedModel.id,
       conditions: conditionsFormHandle.getConditions(),
       parameters: parameterFormHandle.getValues(),
@@ -126,21 +150,28 @@ export function sweepComposition(): void {
       }),
     });
 
-    const series: ChartSeries[] = selectedModel.outputProperties.map((property, index) => ({
-      label: property.name,
-      color: CHART_COLORS[index % CHART_COLORS.length]!,
-      points: sweep.points.map((point) => {
-        const value = point.result.values[property.id];
-        const scalar = Array.isArray(value) ? value[0]?.value : value?.value;
-        return { x: point.x, y: scalar ?? 0 };
-      }),
-    }));
+    const plottedPropertyId = byId<HTMLSelectElement>("chart-property-select").value;
+    const plottedProperty = selectedModel.outputProperties.find((property) => property.id === plottedPropertyId) ?? selectedModel.outputProperties[0];
 
-    drawLineChart(byId<HTMLCanvasElement>("workbench-chart"), series, {
-      title: `${selectedModel.name} — composition sweep`,
-      xLabel: `Mole fraction of ${componentA.element.symbol}`,
-      yLabel: selectedModel.outputProperties[0]?.name ?? "",
-    });
+    if (plottedProperty) {
+      const series: ChartSeries[] = [
+        {
+          label: plottedProperty.name,
+          color: CHART_COLOR,
+          points: sweep.points.map((point) => {
+            const value = point.result.values[plottedProperty.id];
+            const scalar = Array.isArray(value) ? value[0]?.value : value?.value;
+            return { x: point.x, y: scalar ?? 0 };
+          }),
+        },
+      ];
+
+      drawLineChart(byId<HTMLCanvasElement>("workbench-chart"), series, {
+        title: `${selectedModel.name} — ${plottedProperty.name}`,
+        xLabel: `Mole fraction of ${componentA.element.symbol}`,
+        yLabel: `${plottedProperty.name} (${plottedProperty.unit})`,
+      });
+    }
 
     lastSweepRows = sweep.points.map((point) => {
       const row: Record<string, unknown> = { x: point.x };
@@ -164,6 +195,60 @@ export function exportCsv(): void {
   downloadCsv(`${selectedModel.id}-sweep.csv`, toCsv(lastSweepRows));
 }
 
+function renderCsvImportResult(container: HTMLElement, result: CsvParseResult): void {
+  container.innerHTML = "";
+
+  if (result.headers.length === 0) {
+    const message = document.createElement("p");
+    message.textContent = result.issues[0] ?? "Nothing to show.";
+    container.appendChild(message);
+    return;
+  }
+
+  const table = document.createElement("table");
+  const headerRow = document.createElement("tr");
+  for (const header of result.headers) {
+    const th = document.createElement("th");
+    th.textContent = header;
+    headerRow.appendChild(th);
+  }
+  table.appendChild(headerRow);
+
+  for (const row of result.rows) {
+    const tr = document.createElement("tr");
+    for (const header of result.headers) {
+      const td = document.createElement("td");
+      const value = row[header];
+      td.textContent = value === null || value === undefined ? "—" : String(value);
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  container.appendChild(table);
+
+  if (result.issues.length > 0) {
+    const issuesBox = document.createElement("div");
+    issuesBox.className = "issues";
+    const heading = document.createElement("strong");
+    heading.textContent = `${result.issues.length} issue(s) found:`;
+    issuesBox.appendChild(heading);
+    const list = document.createElement("ul");
+    for (const issue of result.issues) {
+      const li = document.createElement("li");
+      li.textContent = issue;
+      list.appendChild(li);
+    }
+    issuesBox.appendChild(list);
+    container.appendChild(issuesBox);
+  }
+}
+
+/** Parses the pasted CSV text and renders it as a table (plus any issues) — not wired into regression/curve-fitting, see csvImport.ts's header comment. */
+export function importCsv(): void {
+  const text = byId<HTMLTextAreaElement>("csv-import-input").value;
+  renderCsvImportResult(byId("csv-import-result"), parseCsv(text));
+}
+
 export function init(): void {
   materialRows = DEFAULT_ROWS.map((row) => ({ ...row }));
   lastSweepRows = [];
@@ -181,6 +266,7 @@ export function init(): void {
     onChange: (model) => {
       selectedModel = model;
       renderConditionsAndParametersFor(model);
+      renderChartPropertySelectFor(model);
       byId<HTMLButtonElement>("export-csv").disabled = true;
       lastSweepRows = [];
     },
@@ -194,10 +280,19 @@ export function init(): void {
     selectedModel,
     selectedModel.id === QUASI_CHEMICAL_SCC0_MODEL_ID ? { Z: 10, W: -21500 } : {},
   );
+  renderChartPropertySelectFor(selectedModel);
 
-  byId<HTMLButtonElement>("calculate-button").addEventListener("click", calculate);
-  byId<HTMLButtonElement>("sweep-button").addEventListener("click", sweepComposition);
-  byId<HTMLButtonElement>("export-csv").addEventListener("click", exportCsv);
+  // Property assignment, not addEventListener: idempotent by construction,
+  // so a second init() call against the same DOM (e.g. in tests, or any
+  // future re-init flow) replaces rather than stacks each handler — a
+  // second addEventListener would fire calculate() N times per click.
+  byId<HTMLButtonElement>("calculate-button").onclick = calculate;
+  byId<HTMLButtonElement>("sweep-button").onclick = sweepComposition;
+  byId<HTMLButtonElement>("export-csv").onclick = exportCsv;
+  byId<HTMLButtonElement>("csv-import-button").onclick = importCsv;
+  byId<HTMLSelectElement>("chart-property-select").onchange = () => {
+    if (lastSweepRows.length > 0) sweepComposition();
+  };
 
   calculate();
 }
