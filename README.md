@@ -45,6 +45,13 @@ full UI ↔ engine boundary and request/response flow for each page.
   families in active use plus the near-term ones strain/magnetism/
   electrical models will need — opt-in, not applied automatically to any
   model's inputs/outputs.
+- **Pure thermodynamic-quantity utilities** (`engine/thermodynamics/`):
+  ideal mixing entropy, activity, ideal mixing Gibbs energy, a
+  multicomponent pairwise interaction matrix + regular-solution mixing
+  enthalpy, relative chemical potential, and total mixing Gibbs energy —
+  model-independent functions, not `ModelDefinition`s, composable with the
+  four models above at the call site. See
+  [`engine/README.md`](engine/README.md#thermodynamic-utilities-phase-5).
 - **A parameter-provenance architecture** (`engine/parameters/`): every
   parameter record is typed `verified_direct` / `verified_derived` /
   `provisional` / `unavailable`, and the resolver returns an explicit

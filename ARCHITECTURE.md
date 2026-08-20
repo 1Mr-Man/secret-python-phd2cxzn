@@ -287,3 +287,20 @@ this file, `engine/README.md`, the root `README.md`, and
   phase, matching the precedent every other model in this repo followed
   (its own dedicated, audited phase) rather than being folded into a
   foundation-infrastructure phase.
+
+## What Phase 5 intentionally did not change
+
+Phase 5 added `engine/thermodynamics/` — six pure, model-independent
+thermodynamic-quantity utility functions (see `engine/README.md`'s
+"Thermodynamic utilities (Phase 5)" section for the full list and their
+equations) — and is engine-only, touching no file this document describes:
+
+- `index.html`, `app/main.ts`, `app/qcAdapter.ts`, `workbench.html`, and
+  every file under `app/workbench/*` are byte-for-byte unchanged. None of
+  the six new utilities are wired into either page yet — they're callable
+  through `engine/index.ts` but nothing in the UI imports them.
+- No existing model (`Ideal`, `Regular`, `Quasi-Chemical`, `MIVM`),
+  `CalculationPipeline.ts`, the parameter-provenance architecture, or
+  `engine/data/parameterSets/` changed. The new utilities are not
+  `ModelDefinition`s: they carry no `modelId` and never run through the
+  pipeline.

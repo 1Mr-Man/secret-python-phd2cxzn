@@ -20,7 +20,12 @@ deliberately not here" below). Phase 3 added `app/workbench/*` +
 `workbench.html`, a generic UI driving any registered model against any
 material system, alongside (not replacing) the original Au-Cu calculator
 — see `../ARCHITECTURE.md`. Phase 4 added real unit conversion
-(`core/UnitConversion.ts`) as an opt-in module. No UI, charts, database,
+(`core/UnitConversion.ts`) as an opt-in module. Phase 5 added
+`engine/thermodynamics/` — six pure, model-independent thermodynamic-
+quantity utilities (ideal mixing entropy, activity, ideal mixing Gibbs
+energy, a multicomponent pairwise interaction matrix + regular-solution
+mixing enthalpy, relative chemical potential, total mixing Gibbs energy)
+— see "Thermodynamic utilities (Phase 5)" below. No UI, charts, database,
 or authentication live in `engine/` itself: this directory has zero
 dependency on the DOM, React, or any browser API, by design.
 
@@ -63,6 +68,15 @@ engine/
         metadata.ts                Descriptive facts: refs, parameters, equations, assumptions
         model.ts                     The calculation itself + validate()
         model.test.ts                 Golden-value regression tests
+
+  thermodynamics/    Pure, model-independent thermodynamic-quantity utilities (Phase 5) — no modelId, never run through the pipeline
+    mixingEntropy.ts           idealMixingEntropy(): ideal molar entropy of mixing
+    activity.ts                    activity(): a_i = gamma_i * x_i
+    idealMixingGibbsEnergy.ts        idealMixingGibbsEnergy(): RT * sum(x_i ln x_i)
+    interactionMatrix.ts               InteractionMatrix type, its validators, canonicalPairKey(), buildInteractionLookup()
+    mixingEnthalpy.ts                    regularSolutionMixingEnthalpy(): sum over i<j of Omega_ij * x_i * x_j
+    chemicalPotential.ts                   relativeChemicalPotential(): RT * ln(a_i), relative to the pure-component reference
+    totalMixingGibbsEnergy.ts                totalMixingGibbsEnergy(): ideal + excess Gibbs energy of mixing
 
   parameters/       Parameter database architecture (types + a small, empty-by-default multi-set store + a resolver)
     types.ts            ParameterValue (status, uncertainty, notes), ParameterSet (setId, valid T/composition ranges)
@@ -528,6 +542,36 @@ Quasi-Chemical point at real, checkable sources (the original prototype
 and the standard fluctuation formalism); Regular Solution's `references`
 entry says plainly that it's an engine-internal derivation, not a citation
 — see "The three thermodynamic Scc(0) models" above.
+
+## Thermodynamic utilities (Phase 5)
+
+`engine/thermodynamics/` (distinct from `engine/models/thermodynamics/`
+above) holds six pure functions — no `modelId`, never registered, never
+run through `CalculationPipeline.ts` — each one a standalone
+model-independent thermodynamic quantity rather than a full model:
+
+- `idealMixingEntropy(composition)` — `ΔS_mix^ideal = -R*sum(x_i*ln(x_i))`
+- `activity(gamma_i, x_i)` — `a_i = gamma_i * x_i`
+- `idealMixingGibbsEnergy(composition, temperatureK)` — `ΔG_mix^ideal = RT*sum(x_i*ln(x_i))`
+- `InteractionMatrix` + `regularSolutionMixingEnthalpy(composition, matrix)` —
+  a multicomponent pairwise interaction table (`Ω_ij`, canonicalized via
+  `SystemIdentity.ts`'s existing `canonicalizeSystemLabel()`) and
+  `ΔH_mix = sum over i<j of Ω_ij * x_i * x_j`
+- `relativeChemicalPotential(activity, temperatureK)` — `Δμ_i = RT*ln(a_i)`,
+  relative to the pure-component reference state, never absolute `μ_i`
+- `totalMixingGibbsEnergy(idealGibbsEnergy, excessGibbsEnergy)` —
+  `ΔG_mix = ΔG_mix^ideal + G^E`, a plain sum of two caller-supplied terms
+
+Each composes with the existing models at the call site rather than being
+called by them or reimplementing their math: e.g.
+`totalMixingGibbsEnergy(idealMixingGibbsEnergy(...), mivmResult.GmE)`. `Ω_ij`
+is deliberately the same interaction-energy convention as Regular
+Solution's `W` only — never Quasi-Chemical's `W` or MIVM's `B_ij`/`B_ji`,
+which are non-interchangeable conventions (see `interactionMatrix.ts`'s
+header comment). Validation reuses `validateComposition()` and
+`validateConditions()` rather than introducing a second validation system.
+See each file's own header comment for its full derivation and scope
+notes.
 
 ## What's deliberately not here (through Phase 2D)
 
