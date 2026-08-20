@@ -126,6 +126,21 @@ export { regularSolutionMixingEnthalpy } from "./thermodynamics/mixingEnthalpy.j
 export { relativeChemicalPotential } from "./thermodynamics/chemicalPotential.js";
 export { totalMixingGibbsEnergy } from "./thermodynamics/totalMixingGibbsEnergy.js";
 
+// Phase 6A — pure, model-independent scalar-mechanics utilities. Same
+// contract as Phase 5: no modelId, not run through CalculationPipeline,
+// no UI wiring, no mechanical material data. Strain tensors, stress-
+// strain curves, and composition-dependent mechanical models are
+// deliberately deferred (Phase 6 audit; Phase 6B covers tensors).
+export { linearStrain } from "./mechanics/linearStrain.js";
+export { percentageStrain } from "./mechanics/percentageStrain.js";
+export { volumetricStrain } from "./mechanics/volumetricStrain.js";
+export { thermalStrain } from "./mechanics/thermalStrain.js";
+export { elasticStress } from "./mechanics/elasticStress.js";
+export { youngsModulus } from "./mechanics/youngsModulus.js";
+export { shearModulus } from "./mechanics/shearModulus.js";
+export { bulkModulus } from "./mechanics/bulkModulus.js";
+export { poissonsRatio } from "./mechanics/poissonsRatio.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)
