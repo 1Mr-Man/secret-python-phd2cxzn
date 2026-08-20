@@ -180,6 +180,15 @@ export { curieWeissSusceptibility } from "./magnetic/curieWeissSusceptibility.js
 export { magneticFluxDensity } from "./magnetic/magneticFluxDensity.js";
 export { linearMagnetization } from "./magnetic/linearMagnetization.js";
 
+// Phase 8A — pure, model-independent electrical utilities. Same contract
+// as Phase 5/6/7: no modelId, not run through CalculationPipeline, no UI
+// wiring, no element electrical data. None of these four call each other
+// internally — see the Phase 8A audit.
+export { currentDensity } from "./electrical/currentDensity.js";
+export { conductivityFromResistivity } from "./electrical/conductivityFromResistivity.js";
+export { resistivityFromConductivity } from "./electrical/resistivityFromConductivity.js";
+export { resistivityAtTemperature } from "./electrical/resistivityAtTemperature.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)
