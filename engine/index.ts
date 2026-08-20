@@ -189,6 +189,14 @@ export { conductivityFromResistivity } from "./electrical/conductivityFromResist
 export { resistivityFromConductivity } from "./electrical/resistivityFromConductivity.js";
 export { resistivityAtTemperature } from "./electrical/resistivityAtTemperature.js";
 
+// Phase 9A — theoretical crystal density, cubic unit cells only. Same
+// contract as Phase 5/6/7/8: no modelId, not run through
+// CalculationPipeline, no UI wiring. Z (atoms/unit cell) and molar mass
+// are plain caller-supplied numbers — this does NOT infer Z from any
+// crystalStructure string or look up mass from any Element record. No
+// general (non-cubic) unit-cell-volume utility — see the Phase 9A audit.
+export { theoreticalCrystalDensity } from "./structural/theoreticalCrystalDensity.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)

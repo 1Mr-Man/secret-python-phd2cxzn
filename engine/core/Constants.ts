@@ -23,4 +23,12 @@ export const PhysicalConstants = {
    * `magneticFluxDensity()` (`B = μ0(H+M)`), its first consumer.
    */
   VACUUM_PERMEABILITY_MU0: 1.25663706212e-6,
+
+  /**
+   * Avogadro constant N_A, mol⁻¹.
+   * Exact by definition since the 2019 SI redefinition: 6.02214076e23/mol.
+   * Added for Phase 9A's `theoreticalCrystalDensity()`
+   * (`ρ = Z*M / (N_A*V_cell)`), its first consumer.
+   */
+  AVOGADRO_CONSTANT: 6.02214076e23,
 } as const;
