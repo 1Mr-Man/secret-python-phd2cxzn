@@ -56,6 +56,7 @@ export { IDEAL_SOLUTION_SCC0_MODEL_ID } from "./models/thermodynamics/ideal/inde
 export { REGULAR_SOLUTION_SCC0_MODEL_ID } from "./models/thermodynamics/regular/index.js";
 export { QUASI_CHEMICAL_SCC0_MODEL_ID } from "./models/thermodynamics/quasi-chemical/index.js";
 export { MIVM_BINARY_MODEL_ID } from "./models/thermodynamics/mivm/index.js";
+export { REDLICH_KISTER_BINARY_MODEL_ID } from "./models/thermodynamics/redlich-kister/index.js";
 
 export type { ModelComparisonEntry, ModelComparisonRequest, ModelComparisonResult } from "./comparison/ModelComparison.js";
 export { compareModels } from "./comparison/ModelComparison.js";
