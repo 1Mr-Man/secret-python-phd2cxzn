@@ -206,6 +206,12 @@ export { speedOfLightInMedium } from "./optical/speedOfLightInMedium.js";
 export { fresnelReflectanceNormalIncidence } from "./optical/fresnelReflectanceNormalIncidence.js";
 export { bandGapCutoffWavelength } from "./optical/bandGapCutoffWavelength.js";
 
+// Phase 11A — ideal work of cohesion, the sole locked Phase 11 utility.
+// surfaceEnergyJPerM2 is a plain caller-supplied number (surface free
+// energy, never surface stress). No new constant, no Element/Conditions
+// changes, no surface model — see the Phase 11 audit.
+export { workOfCohesion } from "./surface/workOfCohesion.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)
