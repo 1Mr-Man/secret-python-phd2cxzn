@@ -2,6 +2,8 @@ import { registerModel } from "./registry.js";
 import { idealSolutionScc0Model } from "./thermodynamics/ideal/index.js";
 import { mivmBinaryModel } from "./thermodynamics/mivm/index.js";
 import { quasiChemicalScc0Model } from "./thermodynamics/quasi-chemical/index.js";
+import { redlichKisterBinaryModel } from "./thermodynamics/redlich-kister/index.js";
+import { regularSolutionMulticomponentModel } from "./thermodynamics/regular-multicomponent/index.js";
 import { regularSolutionScc0Model } from "./thermodynamics/regular/index.js";
 
 /**
@@ -14,4 +16,6 @@ export function registerBuiltInModels(): void {
   registerModel(regularSolutionScc0Model);
   registerModel(quasiChemicalScc0Model);
   registerModel(mivmBinaryModel);
+  registerModel(redlichKisterBinaryModel);
+  registerModel(regularSolutionMulticomponentModel);
 }

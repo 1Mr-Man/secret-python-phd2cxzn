@@ -20,9 +20,22 @@ deliberately not here" below). Phase 3 added `app/workbench/*` +
 `workbench.html`, a generic UI driving any registered model against any
 material system, alongside (not replacing) the original Au-Cu calculator
 — see `../ARCHITECTURE.md`. Phase 4 added real unit conversion
-(`core/UnitConversion.ts`) as an opt-in module. No UI, charts, database,
-or authentication live in `engine/` itself: this directory has zero
-dependency on the DOM, React, or any browser API, by design.
+(`core/UnitConversion.ts`) as an opt-in module. Phase 5 added
+`engine/thermodynamics/` — six pure, model-independent thermodynamic-
+quantity utilities (ideal mixing entropy, activity, ideal mixing Gibbs
+energy, a multicomponent pairwise interaction matrix + regular-solution
+mixing enthalpy, relative chemical potential, total mixing Gibbs energy)
+— see "Thermodynamic utilities (Phase 5)" below. Phase 6 added
+`engine/mechanics/` in four sub-phases: 6A nine scalar utilities (linear/
+percentage/volumetric/thermal strain, elastic stress, and the four
+independent moduli), 6B a 3x3 strain-tensor representation with
+construction/validation/component-extraction and the explicit
+tensorial-to-engineering shear conversion, 6C principal strains (a
+closed-form symmetric eigensolver), and 6D the tensorial von Mises
+equivalent strain — see "Scalar and tensor mechanics utilities (Phase
+6)" below. No UI, charts, database, or authentication live in `engine/`
+itself: this directory has zero dependency on the DOM, React, or any
+browser API, by design.
 
 ## Why this exists
 
@@ -63,6 +76,24 @@ engine/
         metadata.ts                Descriptive facts: refs, parameters, equations, assumptions
         model.ts                     The calculation itself + validate()
         model.test.ts                 Golden-value regression tests
+
+  thermodynamics/    Pure, model-independent thermodynamic-quantity utilities (Phase 5) — no modelId, never run through the pipeline
+    mixingEntropy.ts           idealMixingEntropy(): ideal molar entropy of mixing
+    activity.ts                    activity(): a_i = gamma_i * x_i
+    idealMixingGibbsEnergy.ts        idealMixingGibbsEnergy(): RT * sum(x_i ln x_i)
+    interactionMatrix.ts               InteractionMatrix type, its validators, canonicalPairKey(), buildInteractionLookup()
+    mixingEnthalpy.ts                    regularSolutionMixingEnthalpy(): sum over i<j of Omega_ij * x_i * x_j
+    chemicalPotential.ts                   relativeChemicalPotential(): RT * ln(a_i), relative to the pure-component reference
+    totalMixingGibbsEnergy.ts                totalMixingGibbsEnergy(): ideal + excess Gibbs energy of mixing
+
+  mechanics/         Pure, model-independent scalar and tensor mechanics utilities (Phase 6) — no modelId, never run through the pipeline
+    linearStrain.ts, percentageStrain.ts, volumetricStrain.ts,
+    thermalStrain.ts, elasticStress.ts, youngsModulus.ts,
+    shearModulus.ts, bulkModulus.ts, poissonsRatio.ts         6A — scalar utilities
+    strainTensor.ts, strainTensorComponents.ts,
+    engineeringShearStrain.ts, volumetricStrainFromTensor.ts  6B — 3x3 strain tensor
+    principalStrains.ts                                       6C — eigenvalues
+    equivalentStrain.ts                                       6D — von Mises equivalent strain
 
   parameters/       Parameter database architecture (types + a small, empty-by-default multi-set store + a resolver)
     types.ts            ParameterValue (status, uncertainty, notes), ParameterSet (setId, valid T/composition ranges)
@@ -529,6 +560,86 @@ and the standard fluctuation formalism); Regular Solution's `references`
 entry says plainly that it's an engine-internal derivation, not a citation
 — see "The three thermodynamic Scc(0) models" above.
 
+## Thermodynamic utilities (Phase 5)
+
+`engine/thermodynamics/` (distinct from `engine/models/thermodynamics/`
+above) holds six pure functions — no `modelId`, never registered, never
+run through `CalculationPipeline.ts` — each one a standalone
+model-independent thermodynamic quantity rather than a full model:
+
+- `idealMixingEntropy(composition)` — `ΔS_mix^ideal = -R*sum(x_i*ln(x_i))`
+- `activity(gamma_i, x_i)` — `a_i = gamma_i * x_i`
+- `idealMixingGibbsEnergy(composition, temperatureK)` — `ΔG_mix^ideal = RT*sum(x_i*ln(x_i))`
+- `InteractionMatrix` + `regularSolutionMixingEnthalpy(composition, matrix)` —
+  a multicomponent pairwise interaction table (`Ω_ij`, canonicalized via
+  `SystemIdentity.ts`'s existing `canonicalizeSystemLabel()`) and
+  `ΔH_mix = sum over i<j of Ω_ij * x_i * x_j`
+- `relativeChemicalPotential(activity, temperatureK)` — `Δμ_i = RT*ln(a_i)`,
+  relative to the pure-component reference state, never absolute `μ_i`
+- `totalMixingGibbsEnergy(idealGibbsEnergy, excessGibbsEnergy)` —
+  `ΔG_mix = ΔG_mix^ideal + G^E`, a plain sum of two caller-supplied terms
+
+Each composes with the existing models at the call site rather than being
+called by them or reimplementing their math: e.g.
+`totalMixingGibbsEnergy(idealMixingGibbsEnergy(...), mivmResult.GmE)`. `Ω_ij`
+is deliberately the same interaction-energy convention as Regular
+Solution's `W` only — never Quasi-Chemical's `W` or MIVM's `B_ij`/`B_ji`,
+which are non-interchangeable conventions (see `interactionMatrix.ts`'s
+header comment). Validation reuses `validateComposition()` and
+`validateConditions()` rather than introducing a second validation system.
+See each file's own header comment for its full derivation and scope
+notes.
+
+## Scalar and tensor mechanics utilities (Phase 6)
+
+`engine/mechanics/` (distinct from any future `engine/models/<domain>/`
+mechanical model) holds pure functions — no `modelId`, never registered,
+never run through `CalculationPipeline.ts` — built in four sub-phases,
+each individually audited:
+
+- **6A — scalar utilities**: `linearStrain(L, L0)` = `(L-L0)/L0`;
+  `percentageStrain(strain)` = `strain*100`; `volumetricStrain(V, V0)` =
+  the exact `(V-V0)/V0`; `thermalStrain(alpha, deltaT)` = `alpha*deltaT`;
+  `elasticStress(E, strain)` = `E*strain` (uniaxial linear-elastic
+  regime only — deliberately not named `stress()`); and four
+  independent moduli, `youngsModulus(stress, strain)`,
+  `shearModulus(shearStress, shearStrain)`,
+  `bulkModulus(deltaP, volumetricStrain)`,
+  `poissonsRatio(transverseStrain, axialStrain)` — no E/G/K/ν relation
+  formula is implemented; each is computed only from its own defining
+  ratio.
+- **6B — 3x3 strain tensor**: `StrainTensor` stores **tensorial** shear
+  strain (`ε_ij`, not engineering `γ_ij=2ε_ij`) — `createStrainTensor()`
+  builds one from named components and validates it;
+  `validateStrainTensor()` enforces exactly 3x3, finite, and exactly
+  symmetric; `normalStrainComponents()` / `tensorialShearStrainComponents()`
+  extract by name; `engineeringShearStrain(ε_ij)` = `2*ε_ij` is the one
+  explicit, separately-named conversion to engineering shear — never
+  applied implicitly; `volumetricStrainFromTensor(tensor)` = `tr(ε)`, the
+  small-strain approximation, distinct from and never composed with 6A's
+  exact `volumetricStrain()`.
+- **6C — principal strains**: `principalStrains(tensor)` returns
+  `{epsilon1, epsilon2, epsilon3}` (`epsilon1>=epsilon2>=epsilon3`), the
+  eigenvalues of the strain tensor via the closed-form analytic
+  trigonometric method for a real symmetric 3x3 matrix (Smith, 1961) —
+  not an iterative solver. Eigenvalues only, no eigenvectors.
+- **6D — von Mises equivalent strain**: `equivalentStrain(tensor)` — a
+  single-state distortional-strain scalar computed directly from the
+  tensor's raw tensorial components (never via `principalStrains()` or
+  `engineeringShearStrain()`), using the `4/3` shear coefficient correct
+  for the tensorial convention. Not a von Mises stress, not a yield
+  criterion, and not the path-dependent accumulated equivalent plastic
+  strain of flow-plasticity theory — see the file's own header comment.
+
+All validation reuses `validateStrainTensor()` (6B) rather than each
+later utility duplicating it, and every error is `INVALID_INPUT` —
+there is no `SCIENTIFIC_DOMAIN_ERROR` case anywhere in this module
+except 6A's zero-denominator/non-positive-modulus checks. Deliberately
+out of scope: eigenvectors, von Mises *stress*, yield strength/criteria,
+stress-strain curves, plasticity, composition-dependent mechanical
+models, and any mechanical material data — see each phase's own audit
+for why. See each file's own header comment for its full derivation.
+
 ## What's deliberately not here (through Phase 2D)
 
 > **Update, Phase 2E-B onward:** this section is a dated snapshot — read
@@ -607,11 +718,17 @@ entry says plainly that it's an engine-internal derivation, not a citation
   Diagrams) when that model is built — it names a specific,
   well-established computational thermodynamics methodology, not a
   similarly-named approximation.
-- **Magnetic, optical, electrical, structural, surface, and linear-strain
-  properties** — none implemented. The `PropertyDomain` union
-  (`core/Property.ts`) already lists these domains and `ModelDefinition`
-  is domain-agnostic, but no model in any of these domains exists yet.
-  Each plugs in exactly like Ideal/Regular/Quasi-Chemical did: a new
+- **Magnetic, optical, electrical, structural, surface, and mechanical
+  (`mechanical_strain`) properties — no `ModelDefinition` in any of
+  these domains exists yet.** Mechanical is the one exception with real
+  code: Phase 6 added `engine/mechanics/`'s pure scalar/tensor utilities
+  (see "Scalar and tensor mechanics utilities (Phase 6)" above) — but
+  those are standalone functions, not a registered model; nothing in the
+  `mechanical_strain` domain is resolvable through
+  `runCalculation()`/the registry/comparison/sweep machinery. The
+  `PropertyDomain` union (`core/Property.ts`) already lists all of these
+  domains and `ModelDefinition` is domain-agnostic. Each plugs in
+  exactly like Ideal/Regular/Quasi-Chemical did: a new
   `engine/models/<domain>/<model-id>/` folder implementing
   `ModelDefinition`, registered in `models/index.ts`, resolvable through
   the same registry/pipeline/comparison/sweep machinery with zero changes
