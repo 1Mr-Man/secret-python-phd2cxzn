@@ -197,6 +197,15 @@ export { resistivityAtTemperature } from "./electrical/resistivityAtTemperature.
 // general (non-cubic) unit-cell-volume utility — see the Phase 9A audit.
 export { theoreticalCrystalDensity } from "./structural/theoreticalCrystalDensity.js";
 
+// Phase 10A — pure, model-independent optical utilities. Same contract
+// as Phase 5/6/7/8/9: no modelId, not run through CalculationPipeline,
+// no UI wiring, no Element lookup. refractiveIndex and opticalBandGapEv
+// are plain caller-supplied numbers. None of these three call each
+// other internally — see the Phase 10A audit.
+export { speedOfLightInMedium } from "./optical/speedOfLightInMedium.js";
+export { fresnelReflectanceNormalIncidence } from "./optical/fresnelReflectanceNormalIncidence.js";
+export { bandGapCutoffWavelength } from "./optical/bandGapCutoffWavelength.js";
+
 export * as elements from "./data/elements.js";
 
 // Real (but currently all status:"unavailable" — see DATA_MANIFEST.md)

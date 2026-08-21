@@ -31,4 +31,28 @@ export const PhysicalConstants = {
    * (`ρ = Z*M / (N_A*V_cell)`), its first consumer.
    */
   AVOGADRO_CONSTANT: 6.02214076e23,
+
+  /**
+   * Speed of light in vacuum c, m/s.
+   * Exact by definition since 1983 (and retained exactly under the 2019
+   * SI redefinition): 299792458 m/s. Added for Phase 10A's
+   * `speedOfLightInMedium()` and `bandGapCutoffWavelength()`.
+   */
+  SPEED_OF_LIGHT: 299792458,
+
+  /**
+   * Planck constant h, J·s.
+   * Exact by definition since the 2019 SI redefinition: 6.62607015e-34 J·s.
+   * Added for Phase 10A's `bandGapCutoffWavelength()`, its first consumer.
+   */
+  PLANCK_CONSTANT: 6.62607015e-34,
+
+  /**
+   * Elementary charge e, C.
+   * Exact by definition since the 2019 SI redefinition: 1.602176634e-19 C.
+   * Used here to convert an energy in eV to joules (1 eV = e joules
+   * exactly). Added for Phase 10A's `bandGapCutoffWavelength()`, its
+   * first consumer.
+   */
+  ELEMENTARY_CHARGE: 1.602176634e-19,
 } as const;
